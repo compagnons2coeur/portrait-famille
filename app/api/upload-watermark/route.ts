@@ -1,8 +1,11 @@
 import { put } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MAX_WIDTH = 2000;
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,12 +16,18 @@ export async function POST(request: NextRequest) {
     }
 
     const base64 = dataUrl.split(",")[1];
-    const buffer = Buffer.from(base64, "base64");
-    const filename = `portraits/watermarked-${Date.now()}.png`;
+    const inputBuffer = Buffer.from(base64, "base64");
 
-    const blob = await put(filename, buffer, {
+    const compressed = await sharp(inputBuffer)
+      .resize({ width: MAX_WIDTH, withoutEnlargement: true })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+
+    const filename = `portraits/watermarked-${Date.now()}.jpg`;
+
+    const blob = await put(filename, compressed, {
       access: "public",
-      contentType: "image/png",
+      contentType: "image/jpeg",
     });
 
     return NextResponse.json({ url: blob.url });
