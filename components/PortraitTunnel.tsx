@@ -13,14 +13,70 @@ type Step = "upload" | "pet-name" | "style" | "generating" | "result" | "support
 const BLOCKED_MESSAGE =
   "Vous avez utilisé vos 2 aperçus gratuits pour ce style. Passez commande pour recevoir votre portrait en HD sans filigrane.";
 
-const SUPPORT_PRODUCTS = [
-  { id: "tableau-toile", label: "Tableau Toile",  emoji: "🖼️", prix: "À partir de 34,90€", available: true  },
-  { id: "tableau-metal", label: "Tableau Métal",  emoji: "✨", prix: "À partir de 39,90€", available: true  },
-  { id: "tshirt",        label: "T-shirt",         emoji: "👕", prix: "Bientôt",             available: false },
-  { id: "sweat",         label: "Sweat",           emoji: "🧥", prix: "Bientôt",             available: false },
-  { id: "tote-bag",      label: "Tote bag",        emoji: "👜", prix: "Bientôt",             available: false },
-  { id: "coque-iphone",  label: "Coque iPhone",    emoji: "📱", prix: "Bientôt",             available: false },
+const SUPPORT_CATEGORIES = [
+  {
+    id: "tableaux",
+    label: "Tableaux",
+    products: [
+      { id: "tableau-toile", label: "Tableau Toile",      emoji: "🖼️", prix: "dès 34,90€", available: true,  aspectRatio: "3:4"    },
+      { id: "tableau-metal", label: "Tableau Métal",      emoji: "✨",  prix: "dès 39,90€", available: true,  aspectRatio: "3:4"    },
+    ],
+  },
+  {
+    id: "textile",
+    label: "Textile & Mode",
+    products: [
+      { id: "tshirt",    label: "T-shirt",   emoji: "👕", prix: "dès 24,90€", available: true,  aspectRatio: "3:4" },
+      { id: "sweat",     label: "Sweat",     emoji: "🧥", prix: "dès 34,90€", available: true,  aspectRatio: "3:4" },
+      { id: "polo",      label: "Polo",      emoji: "👔", prix: "dès 29,90€", available: true,  aspectRatio: "3:4" },
+      { id: "tablier",   label: "Tablier",   emoji: "🍳", prix: "dès 27,90€", available: true,  aspectRatio: "3:4" },
+      { id: "body-bebe", label: "Body bébé", emoji: "👶", prix: "dès 19,90€", available: true,  aspectRatio: "3:4" },
+      { id: "pyjama",    label: "Pyjamas",   emoji: "😴", prix: "dès 34,90€", available: true,  aspectRatio: "3:4" },
+      { id: "casquette", label: "Casquette", emoji: "🧢", prix: "Bientôt",    available: false, aspectRatio: "3:4" },
+    ],
+  },
+  {
+    id: "accessoires",
+    label: "Accessoires",
+    products: [
+      { id: "tote-bag",  label: "Tote bag",           emoji: "👜", prix: "dès 18,90€", available: true,  aspectRatio: "3:4"    },
+      { id: "coque",     label: "Coque téléphone",    emoji: "📱", prix: "dès 22,90€", available: true,  aspectRatio: "9:19.5" },
+      { id: "porte-cle", label: "Porte-clé",          emoji: "🔑", prix: "dès 9,90€",  available: true,  aspectRatio: "3:4"    },
+      { id: "medaillon", label: "Médaillons/Colliers", emoji: "📿", prix: "dès 14,90€", available: true,  aspectRatio: "3:4"    },
+    ],
+  },
+  {
+    id: "maison",
+    label: "Maison & Déco",
+    products: [
+      { id: "mug",           label: "Mug",              emoji: "☕", prix: "dès 16,90€", available: true,  aspectRatio: "16:9" },
+      { id: "gourde",        label: "Gourde",           emoji: "🫙", prix: "dès 24,90€", available: true,  aspectRatio: "3:4"  },
+      { id: "tapis-souris",  label: "Tapis de souris",  emoji: "🖱️", prix: "dès 18,90€", available: true,  aspectRatio: "16:9" },
+      { id: "dessous-verre", label: "Dessous de verre", emoji: "🫗", prix: "dès 9,90€",  available: true,  aspectRatio: "3:4"  },
+      { id: "magnet",        label: "Magnet",           emoji: "🧲", prix: "dès 7,90€",  available: true,  aspectRatio: "3:4"  },
+      { id: "stickers",      label: "Stickers",         emoji: "🏷️", prix: "Bientôt",    available: false, aspectRatio: "3:4"  },
+    ],
+  },
+  {
+    id: "cuisine",
+    label: "Cuisine & Apéro",
+    products: [
+      { id: "planche-apero", label: "Planche apéro", emoji: "🧀", prix: "dès 29,90€", available: true, aspectRatio: "16:9" },
+      { id: "decapsuleur",   label: "Décapsuleur",   emoji: "🍺", prix: "dès 12,90€", available: true, aspectRatio: "3:4"  },
+    ],
+  },
+  {
+    id: "papeterie",
+    label: "Papeterie & Souvenirs",
+    products: [
+      { id: "marque-page", label: "Marque-page bois", emoji: "📖", prix: "dès 8,90€", available: true,  aspectRatio: "3:4" },
+      { id: "badge",       label: "Badge",             emoji: "🏅", prix: "dès 4,90€", available: true,  aspectRatio: "3:4" },
+      { id: "puzzle",      label: "Puzzle",            emoji: "🧩", prix: "Bientôt",   available: false, aspectRatio: "3:4" },
+    ],
+  },
 ];
+
+const SUPPORT_PRODUCTS = SUPPORT_CATEGORIES.flatMap(c => c.products);
 
 const PROGRESS_STEPS = [
   { pct: 8,  msg: "Analyse de votre animal en cours…" },
@@ -642,35 +698,42 @@ export default function PortraitTunnel() {
               )}
             </div>
 
-            {/* Produits */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-display text-xl text-stone-800 mb-5">Choisissez votre support</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {SUPPORT_PRODUCTS.map(product => (
-                  <button
-                    key={product.id}
-                    type="button"
-                    disabled={!product.available}
-                    onClick={() => { setSelectedProduct(product.id); setStep("support"); }}
-                    className={`rounded-xl border p-4 text-left transition-all duration-200 ${
-                      product.available
-                        ? "bg-white hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-                        : "cursor-not-allowed opacity-50"
-                    }`}
-                    style={{ borderColor: "var(--border)" }}
-                  >
-                    <div className="text-2xl mb-2">{product.emoji}</div>
-                    <p className="text-sm font-semibold text-stone-800">{product.label}</p>
-                    {product.available ? (
-                      <p className="mt-1 text-xs font-bold" style={{ color: "var(--green)" }}>{product.prix}</p>
-                    ) : (
-                      <span className="mt-2 inline-block rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--border)", color: "var(--muted)" }}>
-                        Bientôt
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
+            {/* Produits par catégorie */}
+            <div className="flex-1 min-w-0 space-y-8">
+              <h3 className="font-display text-xl text-stone-800">Choisissez votre support</h3>
+              {SUPPORT_CATEGORIES.map(category => (
+                <div key={category.id}>
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+                    {category.label}
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {category.products.map(product => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        disabled={!product.available}
+                        onClick={() => { if (product.available) { setSelectedProduct(product.id); setStep("support"); } }}
+                        className={`rounded-xl border p-4 text-left transition-all duration-200 ${
+                          product.available
+                            ? "bg-white hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                            : "cursor-not-allowed opacity-50"
+                        }`}
+                        style={{ borderColor: "var(--border)" }}
+                      >
+                        <div className="text-2xl mb-2">{product.emoji}</div>
+                        <p className="text-sm font-semibold text-stone-800">{product.label}</p>
+                        {product.available ? (
+                          <p className="mt-1 text-xs font-bold" style={{ color: "var(--green)" }}>{product.prix}</p>
+                        ) : (
+                          <span className="mt-2 inline-block rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--border)", color: "var(--muted)" }}>
+                            Bientôt
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
