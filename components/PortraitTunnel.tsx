@@ -418,7 +418,15 @@ export default function PortraitTunnel() {
     <div className="mx-auto w-full max-w-6xl">
 
       {/* Header */}
-      <div className="mb-12 text-center">
+      <div className="mb-12 relative">
+        <a
+          href="https://compagnonsdecoeur.fr"
+          className="absolute left-0 top-0 flex items-center gap-1 text-sm transition hover:opacity-70"
+          style={{ color: "var(--muted)" }}
+        >
+          ← Boutique
+        </a>
+        <div className="text-center">
         <p className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: "var(--green)" }}>
           Compagnons de Cœur
         </p>
@@ -438,6 +446,7 @@ export default function PortraitTunnel() {
             ↺ Recommencer
           </button>
         )}
+        </div>
       </div>
 
       {/* Step indicator */}
