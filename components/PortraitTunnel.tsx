@@ -33,10 +33,11 @@ const PROGRESS_STEPS = [
   { pct: 94, msg: "Presque prêt…" },
 ];
 
-function StyleCard({ style, selected, disabled, onSelect }: {
-  style: Style; selected: boolean; disabled: boolean; onSelect: () => void;
+function StyleCard({ style, selected, disabled, onSelect, previewOverride }: {
+  style: Style; selected: boolean; disabled: boolean; onSelect: () => void; previewOverride?: string | null;
 }) {
   const [imageError, setImageError] = useState(false);
+  const imgSrc = previewOverride ?? `/styles/${style.id}.jpg`;
   return (
     <button
       type="button"
@@ -53,7 +54,7 @@ function StyleCard({ style, selected, disabled, onSelect }: {
         {!imageError ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={`/styles/${style.id}.jpg`}
+            src={imgSrc}
             alt={style.nameFr}
             className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${style.id === "argentique" ? "object-top" : ""}`}
             onError={() => setImageError(true)}
@@ -566,6 +567,7 @@ export default function PortraitTunnel() {
                 selected={selectedStyle?.id === style.id}
                 disabled={isSubmitting}
                 onSelect={() => handleStyleSelect(style)}
+                previewOverride={style.id === "sans-ia" ? photoPreview : null}
               />
             ))}
           </div>
