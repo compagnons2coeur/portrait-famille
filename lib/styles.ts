@@ -10,6 +10,13 @@ export interface Style {
 
 export const STYLES: Style[] = [
   {
+    id: "sans-ia",
+    nameFr: "Photo originale",
+    accent: "#6B7280",
+    description: "Votre photo telle quelle, sans modification",
+    prompt: "",
+  },
+  {
     id: "espace",
     nameFr: "Espace",
     accent: "#1E3A5F",
@@ -89,13 +96,6 @@ High-end professional studio pet portrait, medium format camera, 85mm f/1.4 lens
     prompt: `${BASE}
 
 Timeless black and white fine art studio portrait, medium format camera. Dramatic single key light from 45°, deep shadows, strong contrast. Clean white seamless backdrop. Tack-sharp focus on eyes and fur texture, silky bokeh. Rich blacks, pure whites, full tonal range. Helmut Newton meets Irving Penn aesthetic. Elegant, powerful, timeless.`,
-  },
-  {
-    id: "sans-ia",
-    nameFr: "Photo originale",
-    accent: "#6B7280",
-    description: "Votre photo telle quelle, sans modification",
-    prompt: "",
   },
 ];
 
