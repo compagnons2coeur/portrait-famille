@@ -419,9 +419,9 @@ export default function PortraitTunnel() {
       {/* ── UPLOAD ── */}
       {step === "upload" && (
         <div className="mx-auto max-w-xl">
-          <h2 className="font-display mb-1 text-2xl text-stone-800">Photo de votre animal</h2>
+          <h2 className="font-display mb-1 text-2xl text-stone-800">Photo de votre famille</h2>
           <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
-            JPG ou PNG, 15 Mo max. Plusieurs animaux ? Pas de souci, ils seront tous intégrés.
+            JPG ou PNG, 15 Mo max. Une belle photo de famille pour un résultat optimal.
           </p>
 
           <div
@@ -514,7 +514,7 @@ export default function PortraitTunnel() {
             Comment s&apos;appelle votre compagnon ?
           </h2>
           <p className="text-sm mb-8" style={{ color: "var(--muted)" }}>
-            Pour personnaliser votre tableau avec sa signature.
+            Pour personnaliser votre tableau avec le nom de votre famille.
           </p>
           <div className="relative">
             <input
@@ -522,7 +522,7 @@ export default function PortraitTunnel() {
               maxLength={24}
               value={petName}
               onChange={e => setPetName(e.target.value)}
-              placeholder="Ex : Luna, ou Luna & Max"
+              placeholder="Ex : Famille Martin, ou Les Dupont"
               className="w-full rounded-2xl border bg-white py-3.5 pl-4 pr-4 text-stone-800 outline-none transition focus:ring-2"
               style={{ borderColor: "var(--border)", outline: "none" }}
             />

@@ -9,9 +9,9 @@ const geistSans = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Portrait IA — Compagnons de Cœur",
+  title: "Portrait de Famille — Compagnons de Cœur",
   description:
-    "Créez un portrait artistique IA de votre animal de compagnie. Boutique Compagnons de Cœur.",
+    "Créez un portrait artistique IA de votre famille. Boutique Compagnons de Cœur.",
 };
 
 export default function RootLayout({
