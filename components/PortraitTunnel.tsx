@@ -42,7 +42,8 @@ const SUPPORT_CATEGORIES = [
       { id: "tote-bag",  label: "Tote bag",           emoji: "👜", prix: "dès 18,90€", available: true,  offerLandscape: true  },
       { id: "coque",     label: "Coque téléphone",    emoji: "📱", prix: "dès 22,90€", available: true,  offerLandscape: false },
       { id: "porte-cle", label: "Porte-clé",          emoji: "🔑", prix: "dès 9,90€",  available: true,  offerLandscape: false },
-      { id: "medaillon", label: "Médaillons/Colliers", emoji: "📿", prix: "dès 14,90€", available: true,  offerLandscape: false },
+      { id: "medaillon", label: "Médaillon animal",    emoji: "🐾", prix: "dès 14,90€", available: true,  offerLandscape: false },
+      { id: "collier",   label: "Collier bijou",       emoji: "📿", prix: "dès 19,90€", available: true,  offerLandscape: false },
     ],
   },
   {
@@ -728,9 +729,9 @@ export default function PortraitTunnel() {
                             setStep("support");
                           }
                         }}
-                        className={`rounded-xl border p-4 text-left transition-all duration-200 ${
+                        className={`rounded-xl border bg-white p-4 text-left transition-all duration-200 ${
                           product.available
-                            ? "bg-white hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+                            ? "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
                             : "cursor-not-allowed opacity-50"
                         }`}
                         style={{ borderColor: "var(--border)" }}

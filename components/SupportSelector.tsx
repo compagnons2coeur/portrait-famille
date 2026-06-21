@@ -153,10 +153,16 @@ const PRODUCTS: Record<string, ProductConfig> = {
     ], 22.90),
   },
   "medaillon": {
-    label: "Médaillons / Colliers",
-    description: "Médaillon personnalisé avec le portrait de votre animal, à porter en collier.",
+    label: "Médaillon animal",
+    description: "Médaillon personnalisé avec le portrait de votre animal, à accrocher sur le collier de votre pet.",
     primaryLabel: "Forme", primaryOptions: ["Cœur", "Os", "Rond"],
     variants: singleMap(["Cœur", "Os", "Rond"], 14.90),
+  },
+  "collier": {
+    label: "Collier bijou",
+    description: "Collier bijou personnalisé avec le portrait de votre animal, à porter au quotidien.",
+    primaryLabel: "Forme", primaryOptions: ["Cœur", "Rond"],
+    variants: singleMap(["Cœur", "Rond"], 19.90),
   },
   "mug": {
     label: "Mug",
