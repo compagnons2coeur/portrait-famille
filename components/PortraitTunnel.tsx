@@ -750,51 +750,52 @@ export default function PortraitTunnel() {
                 </div>
               ))}
 
-              {/* Banner optimisation format */}
-              {pendingProduct && (() => {
-                const prod = SUPPORT_PRODUCTS.find(p => p.id === pendingProduct)!;
-                return (
-                  <div className="mt-5 rounded-2xl border p-4" style={{ borderColor: "var(--orange)", backgroundColor: "#fff9f5" }}>
-                    <p className="text-sm font-semibold text-stone-800 mb-1">
-                      Souhaitez-vous un format paysage ?
-                    </p>
-                    <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
-                      Votre portrait est généré en format portrait (3:4). Si vous prévoyez d&apos;afficher votre {prod.label} en mode paysage, nous pouvons régénérer en 16:9 — gratuitement.
-                    </p>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (!selectedStyle) return;
-                          setSelectedProduct(pendingProduct);
-                          setPendingProduct(null);
-                          await startGeneration(selectedStyle, undefined, "16:9", true);
-                        }}
-                        className="rounded-full px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-                        style={{ backgroundColor: "var(--green)" }}
-                      >
-                        Régénérer en paysage (16:9) →
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedProduct(pendingProduct);
-                          setPendingProduct(null);
-                          setStep("support");
-                        }}
-                        className="rounded-full border px-5 py-2 text-sm transition hover:bg-white"
-                        style={{ borderColor: "var(--border)", color: "var(--muted)" }}
-                      >
-                        Utiliser tel quel
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           </div>
         </div>
       )}
+
+      {/* ── MODAL FORMAT PAYSAGE ── */}
+      {pendingProduct && (() => {
+        const prod = SUPPORT_PRODUCTS.find(p => p.id === pendingProduct)!;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
+              <h3 className="font-display text-xl text-stone-900 mb-2">Format paysage ?</h3>
+              <p className="text-sm mb-6" style={{ color: "var(--muted)" }}>
+                Votre portrait est en format portrait (3:4). Si vous prévoyez d&apos;afficher votre <strong>{prod.label}</strong> en mode paysage, nous pouvons régénérer en 16:9 — gratuitement.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!selectedStyle) return;
+                    setSelectedProduct(pendingProduct);
+                    setPendingProduct(null);
+                    await startGeneration(selectedStyle, undefined, "16:9", true);
+                  }}
+                  className="w-full rounded-full py-3 text-sm font-semibold text-white transition hover:opacity-90"
+                  style={{ backgroundColor: "var(--green)" }}
+                >
+                  Régénérer en paysage (16:9) →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProduct(pendingProduct);
+                    setPendingProduct(null);
+                    setStep("support");
+                  }}
+                  className="w-full rounded-full border py-3 text-sm transition hover:bg-stone-50"
+                  style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+                >
+                  Utiliser tel quel (3:4)
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── EMAIL MODAL ── */}
       {showEmailModal && (
