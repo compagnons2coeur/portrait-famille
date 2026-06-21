@@ -18,60 +18,60 @@ const SUPPORT_CATEGORIES = [
     id: "tableaux",
     label: "Tableaux",
     products: [
-      { id: "tableau-toile", label: "Tableau Toile",      emoji: "🖼️", prix: "dès 34,90€", available: true,  aspectRatio: "3:4"    },
-      { id: "tableau-metal", label: "Tableau Métal",      emoji: "✨",  prix: "dès 39,90€", available: true,  aspectRatio: "3:4"    },
+      { id: "tableau-toile", label: "Tableau Toile",      emoji: "🖼️", prix: "dès 34,90€", available: true,  offerLandscape: true  },
+      { id: "tableau-metal", label: "Tableau Métal",      emoji: "✨",  prix: "dès 39,90€", available: true,  offerLandscape: true  },
     ],
   },
   {
     id: "textile",
     label: "Textile & Mode",
     products: [
-      { id: "tshirt",    label: "T-shirt",   emoji: "👕", prix: "dès 24,90€", available: true,  aspectRatio: "3:4" },
-      { id: "sweat",     label: "Sweat",     emoji: "🧥", prix: "dès 34,90€", available: true,  aspectRatio: "3:4" },
-      { id: "polo",      label: "Polo",      emoji: "👔", prix: "dès 29,90€", available: true,  aspectRatio: "3:4" },
-      { id: "tablier",   label: "Tablier",   emoji: "🍳", prix: "dès 27,90€", available: true,  aspectRatio: "3:4" },
-      { id: "body-bebe", label: "Body bébé", emoji: "👶", prix: "dès 19,90€", available: true,  aspectRatio: "3:4" },
-      { id: "pyjama",    label: "Pyjamas",   emoji: "😴", prix: "dès 34,90€", available: true,  aspectRatio: "3:4" },
-      { id: "casquette", label: "Casquette", emoji: "🧢", prix: "Bientôt",    available: false, aspectRatio: "3:4" },
+      { id: "tshirt",    label: "T-shirt",   emoji: "👕", prix: "dès 24,90€", available: true,  offerLandscape: false },
+      { id: "sweat",     label: "Sweat",     emoji: "🧥", prix: "dès 34,90€", available: true,  offerLandscape: false },
+      { id: "polo",      label: "Polo",      emoji: "👔", prix: "dès 29,90€", available: true,  offerLandscape: false },
+      { id: "tablier",   label: "Tablier",   emoji: "🍳", prix: "dès 27,90€", available: true,  offerLandscape: false },
+      { id: "body-bebe", label: "Body bébé", emoji: "👶", prix: "dès 19,90€", available: true,  offerLandscape: false },
+      { id: "pyjama",    label: "Pyjamas",   emoji: "😴", prix: "dès 34,90€", available: true,  offerLandscape: false },
+      { id: "casquette", label: "Casquette", emoji: "🧢", prix: "Bientôt",    available: false, offerLandscape: false },
     ],
   },
   {
     id: "accessoires",
     label: "Accessoires",
     products: [
-      { id: "tote-bag",  label: "Tote bag",           emoji: "👜", prix: "dès 18,90€", available: true,  aspectRatio: "3:4"    },
-      { id: "coque",     label: "Coque téléphone",    emoji: "📱", prix: "dès 22,90€", available: true,  aspectRatio: "9:19.5" },
-      { id: "porte-cle", label: "Porte-clé",          emoji: "🔑", prix: "dès 9,90€",  available: true,  aspectRatio: "3:4"    },
-      { id: "medaillon", label: "Médaillons/Colliers", emoji: "📿", prix: "dès 14,90€", available: true,  aspectRatio: "3:4"    },
+      { id: "tote-bag",  label: "Tote bag",           emoji: "👜", prix: "dès 18,90€", available: true,  offerLandscape: true  },
+      { id: "coque",     label: "Coque téléphone",    emoji: "📱", prix: "dès 22,90€", available: true,  offerLandscape: false },
+      { id: "porte-cle", label: "Porte-clé",          emoji: "🔑", prix: "dès 9,90€",  available: true,  offerLandscape: false },
+      { id: "medaillon", label: "Médaillons/Colliers", emoji: "📿", prix: "dès 14,90€", available: true,  offerLandscape: false },
     ],
   },
   {
     id: "maison",
     label: "Maison & Déco",
     products: [
-      { id: "mug",           label: "Mug",              emoji: "☕", prix: "dès 16,90€", available: true,  aspectRatio: "16:9" },
-      { id: "gourde",        label: "Gourde",           emoji: "🫙", prix: "dès 24,90€", available: true,  aspectRatio: "3:4"  },
-      { id: "tapis-souris",  label: "Tapis de souris",  emoji: "🖱️", prix: "dès 18,90€", available: true,  aspectRatio: "16:9" },
-      { id: "dessous-verre", label: "Dessous de verre", emoji: "🫗", prix: "dès 9,90€",  available: true,  aspectRatio: "3:4"  },
-      { id: "magnet",        label: "Magnet",           emoji: "🧲", prix: "dès 7,90€",  available: true,  aspectRatio: "3:4"  },
-      { id: "stickers",      label: "Stickers",         emoji: "🏷️", prix: "Bientôt",    available: false, aspectRatio: "3:4"  },
+      { id: "mug",           label: "Mug",              emoji: "☕", prix: "dès 16,90€", available: true,  offerLandscape: true  },
+      { id: "gourde",        label: "Gourde",           emoji: "🫙", prix: "dès 24,90€", available: true,  offerLandscape: false },
+      { id: "tapis-souris",  label: "Tapis de souris",  emoji: "🖱️", prix: "dès 18,90€", available: true,  offerLandscape: true  },
+      { id: "dessous-verre", label: "Dessous de verre", emoji: "🫗", prix: "dès 9,90€",  available: true,  offerLandscape: false },
+      { id: "magnet",        label: "Magnet",           emoji: "🧲", prix: "dès 7,90€",  available: true,  offerLandscape: false },
+      { id: "stickers",      label: "Stickers",         emoji: "🏷️", prix: "Bientôt",    available: false, offerLandscape: false },
     ],
   },
   {
     id: "cuisine",
     label: "Cuisine & Apéro",
     products: [
-      { id: "planche-apero", label: "Planche apéro", emoji: "🧀", prix: "dès 29,90€", available: true, aspectRatio: "16:9" },
-      { id: "decapsuleur",   label: "Décapsuleur",   emoji: "🍺", prix: "dès 12,90€", available: true, aspectRatio: "3:4"  },
+      { id: "planche-apero", label: "Planche apéro", emoji: "🧀", prix: "dès 29,90€", available: true, offerLandscape: true  },
+      { id: "decapsuleur",   label: "Décapsuleur",   emoji: "🍺", prix: "dès 12,90€", available: true, offerLandscape: false },
     ],
   },
   {
     id: "papeterie",
     label: "Papeterie & Souvenirs",
     products: [
-      { id: "marque-page", label: "Marque-page bois", emoji: "📖", prix: "dès 8,90€", available: true,  aspectRatio: "3:4" },
-      { id: "badge",       label: "Badge",             emoji: "🏅", prix: "dès 4,90€", available: true,  aspectRatio: "3:4" },
-      { id: "puzzle",      label: "Puzzle",            emoji: "🧩", prix: "Bientôt",   available: false, aspectRatio: "3:4" },
+      { id: "marque-page", label: "Marque-page bois", emoji: "📖", prix: "dès 8,90€", available: true,  offerLandscape: true  },
+      { id: "badge",       label: "Badge",             emoji: "🏅", prix: "dès 4,90€", available: true,  offerLandscape: false },
+      { id: "puzzle",      label: "Puzzle",            emoji: "🧩", prix: "Bientôt",   available: false, offerLandscape: true  },
     ],
   },
 ];
@@ -154,6 +154,8 @@ export default function PortraitTunnel() {
   const [creditsRemaining, setCreditsRemaining] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string>("tableau-toile");
+  const [generationAspectRatio, setGenerationAspectRatio] = useState<string>("3:4");
+  const [pendingProduct, setPendingProduct] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,28 +189,32 @@ export default function PortraitTunnel() {
     if (file) handleFile(file);
   };
 
-  const fetchCredits = async (styleId: string, fp: string) => {
-    const params = new URLSearchParams({ styleId, fingerprint: fp });
+  const fetchCredits = async (fp: string) => {
+    const params = new URLSearchParams({ fingerprint: fp });
     const response = await fetch(`/api/credits?${params}`);
     if (!response.ok) return null;
     const data = (await response.json()) as { remaining: number };
     return data.remaining;
   };
 
-  const startGeneration = async (style: Style, emailValue?: string) => {
+  const startGeneration = async (style: Style, emailValue?: string, aspectRatio: string = "3:4", isOptimization = false) => {
     if (!photoFile || !fingerprint) return;
     setIsSubmitting(true);
     setError(null);
     try {
-      const remaining = await fetchCredits(style.id, fingerprint);
-      setCreditsRemaining(remaining);
-      if (remaining === 0) { setError(BLOCKED_MESSAGE); setIsSubmitting(false); return; }
+      if (!isOptimization) {
+        const remaining = await fetchCredits(fingerprint);
+        setCreditsRemaining(remaining);
+        if (remaining === 0) { setError(BLOCKED_MESSAGE); setIsSubmitting(false); return; }
+      }
 
       const compressed = await compressImage(photoFile);
       const formData = new FormData();
       formData.append("photo", compressed, photoFile.name);
       formData.append("styleId", style.id);
       formData.append("fingerprint", fingerprint);
+      formData.append("aspectRatio", aspectRatio);
+      if (isOptimization) formData.append("optimize", "true");
       if (emailValue) formData.append("email", emailValue);
 
       const response = await fetch("/api/generate", { method: "POST", body: formData });
@@ -224,6 +230,7 @@ export default function PortraitTunnel() {
 
       setShowEmailModal(false);
       setJobId(data.jobId);
+      setGenerationAspectRatio(aspectRatio);
       setStep("generating");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -291,11 +298,11 @@ export default function PortraitTunnel() {
       return;
     }
 
-    const remaining = await fetchCredits(selectedStyle.id, fingerprint);
+    const remaining = await fetchCredits(fingerprint);
     setCreditsRemaining(remaining);
     if (remaining === 0) { setError(BLOCKED_MESSAGE); return; }
 
-    const params = new URLSearchParams({ styleId: selectedStyle.id, fingerprint });
+    const params = new URLSearchParams({ fingerprint });
     const creditsResponse = await fetch(`/api/credits?${params}`);
     if (creditsResponse.ok) {
       const creditsData = (await creditsResponse.json()) as { needsEmail?: boolean };
@@ -381,11 +388,11 @@ export default function PortraitTunnel() {
   }, [step, jobId]);
 
   useEffect(() => {
-    if (step !== "result" || !selectedStyle || !fingerprint) return;
-    fetchCredits(selectedStyle.id, fingerprint).then(remaining => {
+    if (step !== "result" || !fingerprint) return;
+    fetchCredits(fingerprint).then(remaining => {
       if (remaining !== null) setCreditsRemaining(remaining);
     });
-  }, [step, selectedStyle, fingerprint]);
+  }, [step, fingerprint]);
 
   const restart = () => {
     setStep("upload");
@@ -712,7 +719,15 @@ export default function PortraitTunnel() {
                         key={product.id}
                         type="button"
                         disabled={!product.available}
-                        onClick={() => { if (product.available) { setSelectedProduct(product.id); setStep("support"); } }}
+                        onClick={() => {
+                          if (!product.available) return;
+                          if (product.offerLandscape && generationAspectRatio !== "16:9") {
+                            setPendingProduct(product.id);
+                          } else {
+                            setSelectedProduct(product.id);
+                            setStep("support");
+                          }
+                        }}
                         className={`rounded-xl border p-4 text-left transition-all duration-200 ${
                           product.available
                             ? "bg-white hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
@@ -734,6 +749,48 @@ export default function PortraitTunnel() {
                   </div>
                 </div>
               ))}
+
+              {/* Banner optimisation format */}
+              {pendingProduct && (() => {
+                const prod = SUPPORT_PRODUCTS.find(p => p.id === pendingProduct)!;
+                return (
+                  <div className="mt-5 rounded-2xl border p-4" style={{ borderColor: "var(--orange)", backgroundColor: "#fff9f5" }}>
+                    <p className="text-sm font-semibold text-stone-800 mb-1">
+                      Souhaitez-vous un format paysage ?
+                    </p>
+                    <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+                      Votre portrait est généré en format portrait (3:4). Si vous prévoyez d&apos;afficher votre {prod.label} en mode paysage, nous pouvons régénérer en 16:9 — gratuitement.
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!selectedStyle) return;
+                          setSelectedProduct(pendingProduct);
+                          setPendingProduct(null);
+                          await startGeneration(selectedStyle, undefined, "16:9", true);
+                        }}
+                        className="rounded-full px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                        style={{ backgroundColor: "var(--green)" }}
+                      >
+                        Régénérer en paysage (16:9) →
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProduct(pendingProduct);
+                          setPendingProduct(null);
+                          setStep("support");
+                        }}
+                        className="rounded-full border px-5 py-2 text-sm transition hover:bg-white"
+                        style={{ borderColor: "var(--border)", color: "var(--muted)" }}
+                      >
+                        Utiliser tel quel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
