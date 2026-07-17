@@ -40,7 +40,8 @@ export async function compressImage(
 
 export async function applyWatermark(
   imageUrl: string,
-  text = WATERMARK_TEXT
+  text = WATERMARK_TEXT,
+  format: "image/jpeg" | "image/png" = "image/jpeg"
 ): Promise<string> {
   const image = await loadImage(imageUrl);
   const canvas = document.createElement("canvas");
@@ -77,7 +78,10 @@ export async function applyWatermark(
     }
   }
 
-  return canvas.toDataURL("image/jpeg", 0.92);
+  // PNG pour préserver la transparence (styles détourés), JPEG sinon.
+  return format === "image/png"
+    ? canvas.toDataURL("image/png")
+    : canvas.toDataURL("image/jpeg", 0.92);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {

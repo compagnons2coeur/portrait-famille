@@ -18,16 +18,18 @@ export async function POST(request: NextRequest) {
     const base64 = dataUrl.split(",")[1];
     const inputBuffer = Buffer.from(base64, "base64");
 
-    const compressed = await sharp(inputBuffer)
-      .resize({ width: MAX_WIDTH, withoutEnlargement: true })
-      .jpeg({ quality: 85 })
-      .toBuffer();
+    // PNG conservé (transparence des styles détourés), JPEG sinon.
+    const isPng = dataUrl.startsWith("data:image/png");
+    const pipeline = sharp(inputBuffer).resize({ width: MAX_WIDTH, withoutEnlargement: true });
+    const compressed = isPng
+      ? await pipeline.png().toBuffer()
+      : await pipeline.jpeg({ quality: 85 }).toBuffer();
 
-    const filename = `portraits/watermarked-${Date.now()}.jpg`;
+    const filename = `portraits/watermarked-${Date.now()}.${isPng ? "png" : "jpg"}`;
 
     const blob = await put(filename, compressed, {
       access: "public",
-      contentType: "image/jpeg",
+      contentType: isPng ? "image/png" : "image/jpeg",
     });
 
     return NextResponse.json({ url: blob.url });

@@ -1,24 +1,54 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import { STYLES, type Style } from "@/lib/styles";
 import { MAX_UPLOAD_BYTES, POLL_INTERVAL_MS } from "@/lib/constants";
 import { applyWatermark, compressImage, isValidImageFile } from "@/lib/image-utils";
-import SupportSelector from "@/components/SupportSelector";
+import { trackTikTok } from "@/lib/tiktok";
+import SupportSelector, { type CartItemInput } from "@/components/SupportSelector";
 import CropModal from "@/components/CropModal";
 
 type Step = "upload" | "pet-name" | "style" | "generating" | "result" | "support";
 
+type CartItem = CartItemInput & { id: string };
+
+type GenHistoryItem = {
+  id: string;
+  styleName: string;
+  originalImageUrl: string;
+  watermarkedImageUrl: string;
+  blobImageUrl: string | null;
+  aspectRatio: string;
+};
+
+function fmtPrice(price: number) {
+  return price.toFixed(2).replace(".", ",") + "€";
+}
+
 const BLOCKED_MESSAGE =
-  "Vous avez utilisé vos 2 aperçus gratuits pour ce style. Passez commande pour recevoir votre portrait en HD sans filigrane.";
+  "Vous avez utilisé vos 5 générations gratuites du jour. Revenez demain ou passez commande pour recevoir votre portrait en HD sans filigrane.";
+
+/**
+ * Exemples de portraits affichés en haut du tunnel (étape upload).
+ * Objectif : montrer le résultat AVANT de demander l'upload, pour convaincre
+ * le trafic froid (TikTok) qui n'a encore rien vu. Réutilise les vignettes de styles.
+ */
+const GALLERY_EXAMPLES: { src: string; label: string }[] = [
+  { src: "/styles/aquarelle-gallery.jpg", label: "Aquarelle" },
+  { src: "/styles/croquis-gallery.jpg", label: "Croquis crayon" },
+  { src: "/styles/line-art-gallery.jpg", label: "Line art" },
+  { src: "/styles/argentique-gallery.jpg", label: "Argentique" },
+  { src: "/styles/espace-gallery.jpg", label: "Espace" },
+  { src: "/styles/magazine-gallery.jpg", label: "Magazine" },
+];
 
 const SUPPORT_CATEGORIES = [
   {
     id: "tableaux",
     label: "Tableaux",
     products: [
-      { id: "tableau-toile", label: "Tableau Toile",      emoji: "🖼️", prix: "Bientôt", available: false,  offerLandscape: true  },
+      { id: "tableau-toile", label: "Tableau Toile",      emoji: "🖼️", prix: "dès 24,90€", available: true,  offerLandscape: true  },
       { id: "tableau-metal", label: "Tableau Métal",      emoji: "✨",  prix: "Bientôt", available: false,  offerLandscape: true  },
     ],
   },
@@ -28,10 +58,10 @@ const SUPPORT_CATEGORIES = [
     products: [
       { id: "tshirt",    label: "T-shirt",   emoji: "👕", prix: "dès 24,90€", available: true,  offerLandscape: false },
       { id: "sweat",     label: "Sweat",     emoji: "🧥", prix: "dès 34,90€", available: true,  offerLandscape: false },
-      { id: "polo",      label: "Polo",      emoji: "👔", prix: "dès 29,90€", available: true,  offerLandscape: false },
-      { id: "tablier",   label: "Tablier",   emoji: "🍳", prix: "dès 27,90€", available: true,  offerLandscape: false },
-      { id: "body-bebe", label: "Body bébé", emoji: "👶", prix: "dès 19,90€", available: true,  offerLandscape: false },
-      { id: "pyjama",    label: "Pyjamas",   emoji: "😴", prix: "dès 34,90€", available: true,  offerLandscape: false },
+      { id: "polo",      label: "Polo",      emoji: "👔", prix: "Bientôt", available: false, offerLandscape: false },
+      { id: "tablier",   label: "Tablier",   emoji: "🍳", prix: "Bientôt", available: false, offerLandscape: false },
+      { id: "body-bebe", label: "Body bébé", emoji: "👶", prix: "Bientôt", available: false, offerLandscape: false },
+      { id: "pyjama",    label: "Pyjamas",   emoji: "😴", prix: "Bientôt", available: false, offerLandscape: false },
       { id: "casquette", label: "Casquette", emoji: "🧢", prix: "Bientôt",    available: false, offerLandscape: false },
     ],
   },
@@ -39,10 +69,10 @@ const SUPPORT_CATEGORIES = [
     id: "accessoires",
     label: "Accessoires",
     products: [
-      { id: "tote-bag",  label: "Tote bag",           emoji: "👜", prix: "dès 18,90€", available: true,  offerLandscape: true  },
+      { id: "tote-bag",  label: "Tote bag",           emoji: "👜", prix: "Bientôt", available: false, offerLandscape: true  },
       { id: "coque",     label: "Coque téléphone",    emoji: "📱", prix: "Bientôt", available: false,  offerLandscape: false },
       { id: "porte-cle", label: "Porte-clé",          emoji: "🔑", prix: "Bientôt",  available: false,  offerLandscape: false },
-      { id: "medaillon", label: "Médaillon animal",    emoji: "🐾", prix: "Bientôt", available: false,  offerLandscape: false },
+      { id: "medaillon", label: "Médaillon famille",    emoji: "🐾", prix: "Bientôt", available: false,  offerLandscape: false },
       { id: "collier",   label: "Collier bijou",       emoji: "📿", prix: "Bientôt", available: false,  offerLandscape: false },
     ],
   },
@@ -75,12 +105,27 @@ const SUPPORT_CATEGORIES = [
       { id: "puzzle",      label: "Puzzle",            emoji: "🧩", prix: "Bientôt",   available: false, offerLandscape: true  },
     ],
   },
+  {
+    id: "animaux",
+    label: "Univers Animaux",
+    products: [
+      { id: "gamelle", label: "Gamelle animaux", emoji: "🐾", prix: "Bientôt", available: false, offerLandscape: true },
+    ],
+  },
 ];
 
 const SUPPORT_PRODUCTS = SUPPORT_CATEGORIES.flatMap(c => c.products);
 
+// Valide que le paramètre ?produit= correspond à un id de support connu.
+function resolveProductParam(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = raw.toLowerCase().trim();
+  const ids = SUPPORT_PRODUCTS.map(p => p.id);
+  return ids.includes(v) ? v : null;
+}
+
 const PROGRESS_STEPS = [
-  { pct: 8,  msg: "Analyse de votre animal en cours…" },
+  { pct: 8,  msg: "Analyse de votre famille en cours…" },
   { pct: 20, msg: "Identification des traits distinctifs…" },
   { pct: 35, msg: "Application du style artistique…" },
   { pct: 50, msg: "Ajout des détails et textures…" },
@@ -125,7 +170,6 @@ function StyleCard({ style, selected, disabled, onSelect, previewOverride }: {
       <div className="p-3" style={{ borderTop: `2px solid ${selected ? style.accent : "transparent"}` }}>
         <h3 className="text-xs font-semibold text-stone-800 leading-tight">{style.nameFr}</h3>
         <p className="mt-0.5 text-[11px] text-stone-400 leading-tight">{style.description}</p>
-        <p className="mt-1.5 text-xs font-bold" style={{ color: "var(--green)" }}>Dès 34,90€</p>
       </div>
     </button>
   );
@@ -157,15 +201,99 @@ export default function PortraitTunnel() {
   const [selectedProduct, setSelectedProduct] = useState<string>("tableau-toile");
   const [generationAspectRatio, setGenerationAspectRatio] = useState<string>("3:4");
   const [pendingProduct, setPendingProduct] = useState<string | null>(null);
+  const [preselectedProduct, setPreselectedProduct] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [showCartModal, setShowCartModal] = useState(false);
+  const [payLoading, setPayLoading] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
+  const [showStyleConfirm, setShowStyleConfirm] = useState(false);
+  const [history, setHistory] = useState<GenHistoryItem[]>([]);
+
+  // Affiche le résultat et l'ajoute à l'historique des générations
+  // (permet de revenir à un portrait précédent sans re-générer = zéro coût FAL).
+  const showResult = (original: string, watermarked: string, blob: string | null) => {
+    setOriginalImageUrl(original);
+    setWatermarkedImageUrl(watermarked);
+    setBlobImageUrl(blob);
+    setHistory(prev => {
+      const item: GenHistoryItem = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        styleName: selectedStyle?.nameFr ?? "Portrait",
+        originalImageUrl: original,
+        watermarkedImageUrl: watermarked,
+        blobImageUrl: blob,
+        aspectRatio: generationAspectRatio,
+      };
+      return [item, ...prev.filter(p => p.originalImageUrl !== original)].slice(0, 12);
+    });
+    // Funnel : portrait affiché (étape 3 atteinte — l'utilisateur voit le résultat)
+    trackTikTok("GenerationCompleted", { content_id: "tunnel-portrait", content_name: selectedStyle?.id ?? "" });
+    setStep("result");
+  };
+
+  const restoreFromHistory = (h: GenHistoryItem) => {
+    setOriginalImageUrl(h.originalImageUrl);
+    setWatermarkedImageUrl(h.watermarkedImageUrl);
+    setBlobImageUrl(h.blobImageUrl);
+    setGenerationAspectRatio(h.aspectRatio);
+    setError(null);
+    setStep("result");
+  };
+
+  // Catégories avec le produit présélectionné remonté en tête
+  const displayCategories = useMemo(() => {
+    if (!preselectedProduct) return SUPPORT_CATEGORIES;
+    const preselProd = SUPPORT_PRODUCTS.find(p => p.id === preselectedProduct);
+    if (!preselProd) return SUPPORT_CATEGORIES;
+    const rest = SUPPORT_CATEGORIES.map(cat => ({
+      ...cat,
+      products: cat.products.filter(p => p.id !== preselectedProduct),
+    })).filter(cat => cat.products.length > 0);
+    return [{ id: "__preselected__", label: "Votre sélection", products: [preselProd] }, ...rest];
+  }, [preselectedProduct]);
+
+  // Lire ?produit= depuis l'URL (lien depuis une fiche produit Shopify)
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.search).get("produit");
+    setPreselectedProduct(resolveProductParam(raw));
+    // Pixel TikTok : entrée dans le tunnel (haut de funnel)
+    // content_id requis par TikTok (sinon warning "Missing content_id" + attribution VSA dégradée)
+    trackTikTok("ViewContent", {
+      content_id: "tunnel-portrait",
+      content_type: "product",
+      content_name: "Tunnel portrait animaux",
+      currency: "EUR",
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
+    // Fallback si FingerprintJS échoue ou traîne (navigateurs intégrés TikTok/Instagram,
+    // bloqueurs) : ID persisté en localStorage. Le tunnel ne doit JAMAIS rester bloqué
+    // sans fingerprint — sinon le bouton Générer ne fait rien, silencieusement.
+    const fallbackFp = (): string => {
+      try {
+        const stored = localStorage.getItem("cdc_fp");
+        if (stored) return stored;
+        const id = "fb-" + (typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2) + Date.now().toString(36));
+        localStorage.setItem("cdc_fp", id);
+        return id;
+      } catch {
+        return "fb-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      }
+    };
+    // Si FingerprintJS n'a pas répondu en 3 s, on bascule sur le fallback.
+    const timer = setTimeout(() => {
+      if (!cancelled) setFingerprint(prev => prev ?? fallbackFp());
+    }, 3000);
     FingerprintJS.load().then(fp => fp.get()).then(result => {
-      if (!cancelled) setFingerprint(result.visitorId);
+      if (!cancelled) { clearTimeout(timer); setFingerprint(prev => prev ?? result.visitorId); }
     }).catch(() => {
-      if (!cancelled) setError("Impossible d'identifier cet appareil. Rechargez la page.");
+      if (!cancelled) { clearTimeout(timer); setFingerprint(prev => prev ?? fallbackFp()); }
     });
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
   useEffect(() => {
@@ -181,6 +309,8 @@ export default function PortraitTunnel() {
     if (file.size > MAX_UPLOAD_BYTES) { setError("L'image ne doit pas dépasser 15 Mo."); return; }
     setPhotoFile(file);
     setPhotoPreview(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
+    // Funnel : photo choisie (étape 1 franchie)
+    trackTikTok("PhotoUploaded", { content_id: "tunnel-portrait" });
   }, []);
 
   const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -216,6 +346,7 @@ export default function PortraitTunnel() {
       formData.append("fingerprint", fingerprint);
       formData.append("aspectRatio", aspectRatio);
       if (isOptimization) formData.append("optimize", "true");
+      if (petName.trim()) formData.append("petName", petName.trim());
       if (emailValue) formData.append("email", emailValue);
 
       const response = await fetch("/api/generate", { method: "POST", body: formData });
@@ -232,6 +363,8 @@ export default function PortraitTunnel() {
       setShowEmailModal(false);
       setJobId(data.jobId);
       setGenerationAspectRatio(aspectRatio);
+      // Funnel : génération lancée (étape 2 franchie, style choisi)
+      trackTikTok("GenerationStarted", { content_id: "tunnel-portrait", content_name: style.id });
       setStep("generating");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -240,7 +373,11 @@ export default function PortraitTunnel() {
     }
   };
 
-  const handleStyleSelect = (style: Style) => { resetError(); setSelectedStyle(style); };
+  const handleStyleSelect = (style: Style) => {
+    resetError();
+    setSelectedStyle(style);
+    setShowStyleConfirm(true);
+  };
 
   const handleConfirmGeneration = async () => {
     if (!selectedStyle || !fingerprint) return;
@@ -271,13 +408,21 @@ export default function PortraitTunnel() {
           const uploadData = await uploadRes.json() as { url?: string };
           blobUrl = uploadData.url ?? null;
         } catch { /* fallback */ }
+        // Héberge aussi l'original (sans filigrane) : la commande Shopify doit
+        // contenir une URL courte, jamais l'image encodée en base64.
+        let originalUrl = dataUrl;
+        try {
+          const origRes = await fetch("/api/upload-watermark", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataUrl }),
+          });
+          const origData = await origRes.json() as { url?: string };
+          if (origData.url) originalUrl = origData.url;
+        } catch { /* fallback */ }
         setProgressPct(100);
         setGenerationMessage("Photo prête !");
         await new Promise(resolve => setTimeout(resolve, 400));
-        setOriginalImageUrl(dataUrl);
-        setWatermarkedImageUrl(watermarked);
-        setBlobImageUrl(blobUrl);
-        setStep("result");
+        showResult(originalUrl, watermarked, blobUrl);
       } catch {
         setError("Une erreur est survenue. Veuillez réessayer.");
         setStep("style");
@@ -286,16 +431,15 @@ export default function PortraitTunnel() {
     }
 
     if (isExamplePhoto) {
-      const demoUrl = `/demos/${selectedStyle.id}.jpg`;
+      // Styles transparents : la démo doit être un PNG détouré pour que
+      // les mockups textiles s'affichent sans rectangle blanc.
+      const demoUrl = `/demos/${selectedStyle.id}.${selectedStyle.transparent ? "png" : "jpg"}`;
       setStep("generating");
       await new Promise(resolve => setTimeout(resolve, 8000));
       setProgressPct(100);
       setGenerationMessage("Portrait prêt !");
       await new Promise(resolve => setTimeout(resolve, 500));
-      setOriginalImageUrl(demoUrl);
-      setWatermarkedImageUrl(demoUrl);
-      setBlobImageUrl(demoUrl);
-      setStep("result");
+      showResult(demoUrl, demoUrl, demoUrl);
       return;
     }
 
@@ -340,37 +484,69 @@ export default function PortraitTunnel() {
   useEffect(() => {
     if (step !== "generating" || !jobId) return;
     let cancelled = false;
+    let finishing = false; // verrou : la finalisation (détourage + filigrane) ne doit tourner qu'une fois
     const poll = async () => {
       try {
+        if (finishing) return;
         const response = await fetch(`/api/status/${jobId}`);
         const data = (await response.json()) as { status: string; imageUrl?: string | null };
-        if (cancelled) return;
+        if (cancelled || finishing) return;
         if (data.status === "completed" && data.imageUrl) {
+          finishing = true;
           setProgressPct(100);
-          setGenerationMessage("Application du filigrane…");
-          try {
-            const watermarked = await applyWatermark(data.imageUrl);
-            let blobUrl: string | null = null;
+
+          // Styles à fond transparent : détourage + filigrane faits côté serveur
+          // (les PNG transparents sont trop lourds pour repasser par le client).
+          let finalUrl = data.imageUrl;
+          let serverWatermarkUrl: string | null = null;
+          const transparentMode = selectedStyle?.transparent;
+          if (transparentMode) {
+            setGenerationMessage("Préparation du fond transparent…");
             try {
-              const uploadRes = await fetch("/api/upload-watermark", {
+              const tRes = await fetch("/api/transparent", {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ dataUrl: watermarked }),
+                body: JSON.stringify({ imageUrl: data.imageUrl, mode: transparentMode }),
               });
-              const uploadData = await uploadRes.json() as { url?: string };
-              blobUrl = uploadData.url ?? null;
-            } catch { /* silently fallback */ }
-            if (!cancelled) {
-              setOriginalImageUrl(data.imageUrl);
-              setWatermarkedImageUrl(watermarked);
-              setBlobImageUrl(blobUrl);
-              setStep("result");
+              const tData = await tRes.json() as { url?: string; watermarkedUrl?: string; error?: string };
+              if (tData.url) {
+                finalUrl = tData.url;
+                serverWatermarkUrl = tData.watermarkedUrl ?? null;
+              } else {
+                console.error("[transparent] échec:", tRes.status, tData.error);
+              }
+            } catch (e) {
+              console.error("[transparent] échec réseau/timeout:", e);
             }
-          } catch {
+          }
+
+          if (serverWatermarkUrl) {
             if (!cancelled) {
-              setOriginalImageUrl(data.imageUrl);
-              setWatermarkedImageUrl(data.imageUrl);
-              setBlobImageUrl(null);
-              setStep("result");
+              showResult(finalUrl, serverWatermarkUrl, serverWatermarkUrl);
+            }
+          } else {
+            setGenerationMessage("Application du filigrane…");
+            try {
+              const watermarked = await applyWatermark(
+                finalUrl,
+                undefined,
+                transparentMode ? "image/png" : "image/jpeg",
+              );
+              let blobUrl: string | null = null;
+              try {
+                const uploadRes = await fetch("/api/upload-watermark", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ dataUrl: watermarked }),
+                });
+                const uploadData = await uploadRes.json() as { url?: string };
+                blobUrl = uploadData.url ?? null;
+              } catch { /* silently fallback */ }
+              if (!cancelled) {
+                showResult(finalUrl, watermarked, blobUrl);
+              }
+            } catch {
+              if (!cancelled) {
+                showResult(finalUrl, finalUrl, null);
+              }
             }
           }
         } else if (data.status === "failed") {
@@ -395,6 +571,68 @@ export default function PortraitTunnel() {
     });
   }, [step, fingerprint]);
 
+  // ── Panier multi-portraits ──
+  const cartTotal = cart.reduce((sum, item) => sum + item.unitPrice, 0);
+
+  const addToCart = (item: CartItemInput) => {
+    setCart(prev => [...prev, { ...item, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }]);
+    setCartError(null);
+    setShowCartModal(true);
+    // Pixel TikTok : ajout au panier (signal de conversion pour l'optimisation)
+    trackTikTok("AddToCart", {
+      content_id: item.productId,
+      content_type: "product",
+      content_name: item.label,
+      quantity: 1,
+      value: item.unitPrice,
+      currency: "EUR",
+    });
+  };
+
+  const removeFromCart = (id: string) => {
+    setCart(prev => prev.filter(item => item.id !== id));
+  };
+
+  const payCart = async () => {
+    if (!cart.length || payLoading) return;
+    setPayLoading(true);
+    setCartError(null);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cart.map(item => ({
+            variantId: item.variantId,
+            quantity: item.quantity,
+            portraitUrl: item.portraitUrl,
+            properties: item.properties,
+            extras: item.extras,
+          })),
+        }),
+      });
+      const data = await res.json() as { checkoutUrl?: string; error?: string };
+      if (!res.ok || !data.checkoutUrl) throw new Error(data.error ?? "Erreur commande.");
+      // Pixel TikTok : départ vers le paiement Shopify (CompletePayment se déclenche sur Shopify)
+      trackTikTok("InitiateCheckout", {
+        value: cartTotal,
+        currency: "EUR",
+        contents: cart.map(item => ({
+          content_id: item.productId,
+          content_type: "product",
+          content_name: item.label,
+          price: item.unitPrice,
+          quantity: 1,
+        })),
+      });
+      window.location.href = data.checkoutUrl;
+    } catch (err) {
+      setCartError(err instanceof Error ? err.message : "Erreur inconnue.");
+      setPayLoading(false);
+    }
+  };
+
+  // Réinitialise le tunnel pour un nouveau portrait — le panier est conservé.
   const restart = () => {
     setStep("upload");
     setPhotoFile(null);
@@ -408,6 +646,19 @@ export default function PortraitTunnel() {
     setBlobImageUrl(null);
     setError(null);
     setCreditsRemaining(null);
+    setGenerationAspectRatio("3:4");
+    setPendingProduct(null);
+  };
+
+  const selectProduct = (productId: string) => {
+    const product = SUPPORT_PRODUCTS.find(p => p.id === productId);
+    if (!product || !product.available) return;
+    if (product.offerLandscape && generationAspectRatio !== "16:9") {
+      setPendingProduct(product.id);
+    } else {
+      setSelectedProduct(product.id);
+      setStep("support");
+    }
   };
 
   const STEP_LABELS = ["Photo", "Style", "Création", "Résultat"];
@@ -431,7 +682,7 @@ export default function PortraitTunnel() {
           Compagnons de Cœur
         </p>
         <h1 className="font-display mt-3 text-4xl text-stone-900 sm:text-5xl" style={{ letterSpacing: "-0.02em" }}>
-          Portrait de votre compagnon
+          Portrait de votre famille
         </h1>
         <p className="mt-3 text-base" style={{ color: "var(--muted)" }}>
           Uploadez une photo · Choisissez un style · Recevez un aperçu gratuit
@@ -492,6 +743,38 @@ export default function PortraitTunnel() {
       {/* ── UPLOAD ── */}
       {step === "upload" && (
         <div className="mx-auto max-w-xl">
+
+          {/* Comment ça marche — transformation en vraies images (compact : le module d'upload reste visible sans scroll sur mobile) */}
+          <div className="mb-8 flex items-center justify-center gap-1.5 sm:gap-2.5">
+            {[
+              { src: "/how-it-works/1-photo.jpg", label: "Votre photo", alt: "Photo réelle d'une famille" },
+              { src: "/how-it-works/2-portrait.jpg", label: "On crée le portrait", alt: "Portrait aquarelle de la même famille" },
+              { src: "/how-it-works/3-tshirt.jpg", label: "Sur votre t-shirt… et bien d'autres", alt: "Le portrait imprimé sur un t-shirt, un sweat, un tableau et bien d'autres produits" },
+            ].map((s, i) => (
+              <div key={s.src} className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
+                {i > 0 && (
+                  <span className="shrink-0 text-base sm:text-xl" style={{ color: "var(--green)" }} aria-hidden>
+                    →
+                  </span>
+                )}
+                <figure className="min-w-0 flex-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.src}
+                    alt={s.alt}
+                    width={480}
+                    height={480}
+                    className="aspect-square w-full rounded-xl border object-cover shadow-sm"
+                    style={{ borderColor: "var(--border)" }}
+                  />
+                  <figcaption className="mt-1.5 text-center text-[11px] font-medium text-stone-700 sm:text-xs">
+                    {s.label}
+                  </figcaption>
+                </figure>
+              </div>
+            ))}
+          </div>
+
           <h2 className="font-display mb-1 text-2xl text-stone-800">Photo de votre famille</h2>
           <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
             JPG ou PNG, 15 Mo max. Une belle photo de famille pour un résultat optimal.
@@ -576,6 +859,55 @@ export default function PortraitTunnel() {
           >
             Continuer →
           </button>
+
+          {/* Galerie de preuve — SOUS le module d'upload (le module reste visible sans scroll sur mobile) */}
+          <div className="mt-12 border-t pt-8" style={{ borderColor: "var(--border)" }}>
+            <h2 className="font-display mb-1 text-center text-2xl text-stone-800 sm:text-3xl">
+              Ce que vous allez recevoir
+            </h2>
+            <p className="mb-5 text-center text-sm" style={{ color: "var(--muted)" }}>
+              À partir d&apos;une simple photo de famille — aperçu gratuit en ~30 secondes
+            </p>
+
+            {/* Rangée produits : le portrait décliné sur les supports disponibles */}
+            <div className="mb-6 grid grid-cols-3 gap-2.5">
+              {[
+                { src: "/products-row/tshirt.jpg", label: "T-shirt · dès 29,90 €", alt: "Portrait personnalisé imprimé sur un t-shirt en coton bio" },
+                { src: "/products-row/sweat.jpg", label: "Sweat · 69,90 €", alt: "Portrait personnalisé imprimé au dos d'un sweat à capuche" },
+                { src: "/products-row/tableau.jpg", label: "Tableau toile · dès 24,90 €", alt: "Portrait personnalisé sur tableau toile accroché dans un salon" },
+              ].map(p => (
+                <div key={p.src} className="overflow-hidden rounded-xl border bg-white" style={{ borderColor: "var(--border)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.src} alt={p.alt} loading="lazy" className="aspect-square w-full object-cover" />
+                  <p className="px-1 py-1.5 text-center text-[11px] font-semibold text-stone-700">{p.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+              14 styles artistiques au choix
+            </p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {GALLERY_EXAMPLES.map(g => (
+                <div
+                  key={g.src}
+                  className="overflow-hidden rounded-xl border bg-white"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={g.src}
+                    alt={`Portrait style ${g.label}`}
+                    loading="lazy"
+                    className="aspect-[3/4] w-full object-cover"
+                  />
+                  <p className="px-1 py-1.5 text-center text-[11px]" style={{ color: "var(--muted)" }}>
+                    {g.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
@@ -584,10 +916,11 @@ export default function PortraitTunnel() {
         <div className="mx-auto max-w-md text-center">
           <p className="text-4xl mb-5">🐾</p>
           <h2 className="font-display text-3xl text-stone-900 mb-2">
-            Comment s&apos;appelle votre compagnon ?
+            Le nom de votre famille ?
           </h2>
           <p className="text-sm mb-8" style={{ color: "var(--muted)" }}>
-            Pour personnaliser votre tableau avec le nom de votre famille.
+            Les styles Croquis crayon et Line art l&apos;intègrent directement dans l&apos;œuvre,
+            et il servira de signature sur votre tableau.
           </p>
           <div className="relative">
             <input
@@ -595,7 +928,7 @@ export default function PortraitTunnel() {
               maxLength={24}
               value={petName}
               onChange={e => setPetName(e.target.value)}
-              placeholder="Ex : Famille Martin, ou Les Dupont"
+              placeholder="Ex : Famille Martin"
               className="w-full rounded-2xl border bg-white py-3.5 pl-4 pr-4 text-stone-800 outline-none transition focus:ring-2"
               style={{ borderColor: "var(--border)", outline: "none" }}
             />
@@ -633,37 +966,70 @@ export default function PortraitTunnel() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {STYLES.map(style => (
-              <StyleCard
-                key={style.id}
-                style={style}
-                selected={selectedStyle?.id === style.id}
-                disabled={isSubmitting}
-                onSelect={() => handleStyleSelect(style)}
-                previewOverride={style.id === "sans-ia" ? photoPreview : null}
-              />
-            ))}
-          </div>
-
-          {selectedStyle && !isSubmitting && (
-            <div className="mt-8 rounded-2xl p-5 text-center" style={{ backgroundColor: "var(--green-light)" }}>
-              <p className="mb-3 text-sm text-stone-700">
-                Style sélectionné : <span className="font-semibold">{selectedStyle.nameFr}</span>
+          {([
+            { key: "elegant", title: "✨ Styles élégants" },
+            { key: "fun", title: "🎉 Styles fun" },
+          ] as const).map(cat => (
+            <div key={cat.key} className="mb-8">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+                {cat.title}
               </p>
-              <button
-                type="button"
-                onClick={handleConfirmGeneration}
-                className="rounded-full px-8 py-3 font-semibold text-white transition hover:opacity-90"
-                style={{ backgroundColor: "var(--green)" }}
-              >
-                Générer ce portrait →
-              </button>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {STYLES.filter(s => s.category === cat.key).map(style => (
+                  <StyleCard
+                    key={style.id}
+                    style={style}
+                    selected={selectedStyle?.id === style.id}
+                    disabled={isSubmitting}
+                    onSelect={() => handleStyleSelect(style)}
+                    previewOverride={style.id === "sans-ia" ? photoPreview : null}
+                  />
+                ))}
+              </div>
             </div>
-          )}
+          ))}
+
           {isSubmitting && (
             <p className="mt-6 text-center text-sm" style={{ color: "var(--muted)" }}>Lancement de la génération…</p>
           )}
+        </div>
+      )}
+
+      {/* ── MODAL CONFIRMATION DE STYLE ── */}
+      {showStyleConfirm && selectedStyle && step === "style" && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+          onClick={() => setShowStyleConfirm(false)}
+        >
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="mx-auto mb-4 w-36 overflow-hidden rounded-xl shadow-md">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selectedStyle.id === "sans-ia" && photoPreview ? photoPreview : `/styles/${selectedStyle.id}.jpg`}
+                alt={selectedStyle.nameFr}
+                className="aspect-[2/3] w-full object-cover"
+              />
+            </div>
+            <h3 className="text-center font-display text-2xl text-stone-900">{selectedStyle.nameFr}</h3>
+            <p className="mt-1 text-center text-sm" style={{ color: "var(--muted)" }}>{selectedStyle.description}</p>
+            <button
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => { setShowStyleConfirm(false); void handleConfirmGeneration(); }}
+              className="mt-5 w-full rounded-full py-3.5 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: "var(--green)" }}
+            >
+              Générer ce portrait →
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStyleConfirm(false)}
+              className="mt-3 w-full text-center text-sm transition hover:opacity-70"
+              style={{ color: "var(--muted)" }}
+            >
+              Choisir un autre style
+            </button>
+          </div>
         </div>
       )}
 
@@ -705,7 +1071,10 @@ export default function PortraitTunnel() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={watermarkedImageUrl} alt="Portrait généré" className="w-full object-cover" />
               </div>
-              <button type="button" onClick={restart} className="mt-3 w-full text-center text-sm transition hover:opacity-70" style={{ color: "var(--muted)" }}>
+              <button type="button" onClick={() => setStep("style")} className="mt-3 w-full text-center text-sm font-medium transition hover:opacity-70" style={{ color: "var(--green)" }}>
+                🎨 Essayer un autre style
+              </button>
+              <button type="button" onClick={restart} className="mt-2 w-full text-center text-sm transition hover:opacity-70" style={{ color: "var(--muted)" }}>
                 ↺ Nouveau portrait
               </button>
               {creditsRemaining !== null && creditsRemaining > 0 && selectedStyle && (
@@ -713,52 +1082,112 @@ export default function PortraitTunnel() {
                   {creditsRemaining} aperçu{creditsRemaining > 1 ? "s" : ""} restant{creditsRemaining > 1 ? "s" : ""} — {selectedStyle.nameFr}
                 </p>
               )}
+
+              {/* Historique des générations : revenir à un portrait précédent sans re-générer */}
+              {history.length > 1 && (
+                <div className="mt-5">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
+                    Vos générations
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {history.map(h => {
+                      const isCurrent = h.originalImageUrl === originalImageUrl;
+                      return (
+                        <button
+                          key={h.id}
+                          type="button"
+                          title={h.styleName}
+                          onClick={() => restoreFromHistory(h)}
+                          className={`overflow-hidden rounded-lg transition ${isCurrent ? "ring-2 ring-offset-1" : "opacity-80 hover:opacity-100"}`}
+                          style={isCurrent ? { outline: "2px solid var(--green)", outlineOffset: "1px" } : {}}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={h.watermarkedImageUrl}
+                            alt={h.styleName}
+                            className="aspect-[3/4] w-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-1.5 text-center text-[11px]" style={{ color: "var(--muted)" }}>
+                    Cliquez pour revenir à un portrait précédent
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Produits par catégorie */}
             <div className="flex-1 min-w-0 space-y-8">
               <h3 className="font-display text-xl text-stone-800">Choisissez votre support</h3>
-              {SUPPORT_CATEGORIES.map(category => (
+
+              {/* Bandeau produit présélectionné (lien depuis fiche Shopify) */}
+              {preselectedProduct && (() => {
+                const prod = SUPPORT_PRODUCTS.find(p => p.id === preselectedProduct);
+                if (!prod || !prod.available) return null;
+                return (
+                  <div className="flex flex-wrap items-center gap-4 rounded-2xl border p-4" style={{ borderColor: "var(--green)", backgroundColor: "#f3f8f4" }}>
+                    <div className="text-3xl">{prod.emoji}</div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-stone-800">Vous étiez venu pour le {prod.label}</p>
+                      <p className="text-xs" style={{ color: "var(--muted)" }}>Continuez avec ce support, ou choisissez-en un autre ci-dessous.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => selectProduct(prod.id)}
+                      className="shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+                      style={{ backgroundColor: "var(--green)" }}
+                    >
+                      Continuer avec le {prod.label} →
+                    </button>
+                  </div>
+                );
+              })()}
+              {displayCategories.map(category => (
                 <div key={category.id}>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
                     {category.label}
                   </p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {category.products.map(product => (
+                    {category.products.map(product => {
+                      const isPreselected = product.id === preselectedProduct;
+                      return (
                       <button
                         key={product.id}
                         type="button"
                         disabled={!product.available}
-                        onClick={() => {
-                          if (!product.available) return;
-                          if (product.offerLandscape && generationAspectRatio !== "16:9") {
-                            setPendingProduct(product.id);
-                          } else {
-                            setSelectedProduct(product.id);
-                            setStep("support");
-                          }
-                        }}
-                        className={`rounded-xl border bg-white p-4 text-left transition-all duration-200 ${
+                        onClick={() => selectProduct(product.id)}
+                        className={`relative rounded-xl border p-4 text-left transition-all duration-200 ${
                           product.available
                             ? "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
                             : "cursor-not-allowed opacity-50"
                         }`}
-                        style={{ borderColor: "var(--border)" }}
+                        style={
+                          isPreselected
+                            ? { borderColor: "var(--green)", backgroundColor: "var(--green)", boxShadow: "0 4px 16px rgba(74,124,89,.35)" }
+                            : { borderColor: "var(--border)", backgroundColor: "white" }
+                        }
                       >
+                        {isPreselected && (
+                          <span className="absolute -top-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: "white", color: "var(--green)" }}>
+                            ✨ Votre choix
+                          </span>
+                        )}
                         <div className="text-2xl mb-2">{product.emoji}</div>
-                        <p className="text-sm font-semibold text-stone-800">{product.label}</p>
-                        {product.available ? (
-                          <p className="mt-1 text-xs font-bold" style={{ color: "var(--green)" }}>{product.prix}</p>
-                        ) : (
+                        <p className={`text-sm font-semibold ${isPreselected ? "text-white" : "text-stone-800"}`}>{product.label}</p>
+                        {!product.available && (
                           <span className="mt-2 inline-block rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--border)", color: "var(--muted)" }}>
                             Bientôt
                           </span>
                         )}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               ))}
+
 
             </div>
           </div>
@@ -850,8 +1279,120 @@ export default function PortraitTunnel() {
           mockupImageUrl={blobImageUrl ?? originalImageUrl}
           shopifyImageUrl={originalImageUrl}
           petName={petName || undefined}
+          inkInvertible={selectedStyle?.transparent === "ink"}
           onBack={() => setStep("result")}
+          onAddToCart={addToCart}
         />
+      )}
+
+      {/* ── BADGE PANIER ── */}
+      {cart.length > 0 && !showCartModal && (
+        <button
+          type="button"
+          onClick={() => setShowCartModal(true)}
+          className="fixed top-4 right-4 z-[70] flex items-center gap-2 rounded-full border bg-white px-4 py-2.5 text-sm font-semibold shadow-lg transition hover:shadow-xl"
+          style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+        >
+          🛒 Panier ({cart.length}) · {fmtPrice(cartTotal)}
+        </button>
+      )}
+
+      {/* ── MODAL PANIER / « CRÉER UN AUTRE PORTRAIT ? » ── */}
+      {showCartModal && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+            {cart.length > 0 ? (
+              <>
+                <h3 className="font-display text-2xl text-stone-900">Votre panier 🤍</h3>
+                <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>
+                  Envie d&apos;un autre portrait ? Une autre photo, un autre style, un autre support — tout se paie en une seule fois.
+                </p>
+
+                <div className="mt-5 max-h-60 space-y-3 overflow-y-auto pr-1">
+                  {cart.map(item => (
+                    <div key={item.id} className="flex items-center gap-3 rounded-xl border p-3" style={{ borderColor: "var(--border)" }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={item.previewUrl} alt={item.label} className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-stone-800">{item.label}</p>
+                        <p className="text-xs" style={{ color: "var(--muted)" }}>{fmtPrice(item.unitPrice)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFromCart(item.id)}
+                        aria-label="Retirer du panier"
+                        className="shrink-0 px-1 text-xl leading-none transition hover:opacity-60"
+                        style={{ color: "var(--muted)" }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex items-center justify-between border-t pt-4" style={{ borderColor: "var(--border)" }}>
+                  <span className="text-sm" style={{ color: "var(--muted)" }}>Total TTC · hors livraison</span>
+                  <span className="text-xl font-bold text-stone-900">{fmtPrice(cartTotal)}</span>
+                </div>
+
+                {cartError && <p className="mt-3 text-sm text-red-600">{cartError}</p>}
+
+                <div className="mt-5 flex flex-col gap-3">
+                  <button
+                    type="button"
+                    onClick={payCart}
+                    disabled={payLoading}
+                    className="w-full rounded-full py-3.5 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                    style={{ backgroundColor: "var(--green)" }}
+                  >
+                    {payLoading ? "Création de la commande…" : `Payer ${fmtPrice(cartTotal)} →`}
+                  </button>
+                  {originalImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => { setShowCartModal(false); setStep("result"); }}
+                      className="w-full rounded-full border py-3 text-sm font-medium transition hover:bg-stone-50"
+                      style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                    >
+                      🛍️ Garder ce portrait, ajouter un autre produit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => { setShowCartModal(false); restart(); }}
+                    className="w-full rounded-full border py-3 text-sm font-medium transition hover:bg-stone-50"
+                    style={{ borderColor: "var(--border)", color: "var(--ink)" }}
+                  >
+                    🎨 Créer un autre portrait
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCartModal(false)}
+                    className="text-center text-sm transition hover:opacity-70"
+                    style={{ color: "var(--muted)" }}
+                  >
+                    Fermer
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="font-display text-2xl text-stone-900">Votre panier est vide</h3>
+                <p className="mt-2 text-sm" style={{ color: "var(--muted)" }}>
+                  Ajoutez un portrait sur le support de votre choix pour continuer.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowCartModal(false)}
+                  className="mt-6 w-full rounded-full py-3.5 font-semibold text-white transition hover:opacity-90"
+                  style={{ backgroundColor: "var(--green)" }}
+                >
+                  Continuer
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ── CROP MODAL ── */}
