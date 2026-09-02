@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   canGenerate,
+  allowOptimization,
+  consumeOptimization,
   incrementUsage,
   recordEmail,
 } from "@/lib/credits";
 import { fal, FAL_MODEL_ID } from "@/lib/fal";
 import { buildPrompt, getStyleById } from "@/lib/styles";
+import { MAX_UPLOAD_BYTES } from "@/lib/constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
+const ALLOWED_ASPECT_RATIOS = new Set(["3:4", "16:9"]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,12 +34,16 @@ export async function POST(request: NextRequest) {
     const petName = formData.get("petName");
     const aspectRatio = typeof formData.get("aspectRatio") === "string" ? formData.get("aspectRatio") as string : "3:4";
     const isOptimization = formData.get("optimize") === "true";
+    const sourceJobId = formData.get("sourceJobId");
 
     if (!(photo instanceof File)) {
       return NextResponse.json(
         { error: "Photo requise." },
         { status: 400 }
       );
+    }
+    if (photo.size > MAX_UPLOAD_BYTES || !ALLOWED_IMAGE_TYPES.has(photo.type)) {
+      return NextResponse.json({ error: "Photo invalide ou trop volumineuse." }, { status: 400 });
     }
 
     if (typeof styleId !== "string" || typeof fingerprint !== "string") {
@@ -43,13 +52,23 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!fingerprint.trim() || fingerprint.length > 200 || !ALLOWED_ASPECT_RATIOS.has(aspectRatio)) {
+      return NextResponse.json({ error: "Paramètres de génération invalides." }, { status: 400 });
+    }
+    if (typeof petName === "string" && petName.trim().length > 24) {
+      return NextResponse.json({ error: "La personnalisation est trop longue." }, { status: 400 });
+    }
 
     const style = getStyleById(styleId);
     if (!style) {
       return NextResponse.json({ error: "Style inconnu." }, { status: 400 });
     }
 
-    if (!isOptimization) {
+    if (isOptimization) {
+      if (typeof sourceJobId !== "string" || !(await consumeOptimization(fingerprint, sourceJobId))) {
+        return NextResponse.json({ error: "Régénération non autorisée." }, { status: 403 });
+      }
+    } else {
       const access = await canGenerate(fingerprint);
 
       if (!access.allowed) {
@@ -63,7 +82,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (access.needsEmail) {
-        if (typeof email !== "string" || !EMAIL_REGEX.test(email.trim())) {
+        if (typeof email !== "string" || email.length > 254 || !EMAIL_REGEX.test(email.trim())) {
           return NextResponse.json(
             { error: "Un email valide est requis pour votre première génération." },
             { status: 400 }
@@ -93,7 +112,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!isOptimization) await incrementUsage(fingerprint);
+    if (!isOptimization) {
+      await incrementUsage(fingerprint);
+      await allowOptimization(fingerprint, request_id);
+    }
 
     return NextResponse.json({ jobId: request_id });
   } catch (error) {

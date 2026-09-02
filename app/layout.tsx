@@ -1,18 +1,13 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
 import TikTokPixel from "@/components/TikTokPixel";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-
 export const metadata: Metadata = {
-  title: "Portrait de Famille IA — Compagnons de Cœur",
+  metadataBase: new URL("https://portrait-famille.compagnonsdecoeur.fr"),
+  title: "Portrait personnalisé de famille | Aperçu gratuit",
   description:
-    "Créez un portrait artistique IA de votre famille. Boutique Compagnons de Cœur.",
+    "Transformez une photo de famille en portrait personnalisé. Aperçu gratuit avant impression sur tableau ou textile.",
+  alternates: { canonical: "/" },
 };
 
 export default function RootLayout({
@@ -22,7 +17,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${geistSans.variable} min-h-screen antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+      </head>
+      <body className="min-h-screen antialiased">
         <TikTokPixel />
         {children}
       </body>

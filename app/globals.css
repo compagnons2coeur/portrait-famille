@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --bg: #f7f5f2;
-  --ink: #1c1917;
-  --muted: #78716c;
-  --border: #e5e1db;
-  --green: #406841;
-  --green-dark: #2e4d2f;
-  --green-base: #5D7E5E;
-  --green-light: #eaf2ea;
-  --orange: #F4B183;
+  --bg: #F5EFE6;
+  --ink: #3B352E;
+  --muted: #948A7C;
+  --border: #EBE2D3;
+  --green: #9CAA82;
+  --green-dark: #77875E;
+  --green-base: #9CAA82;
+  --green-light: #EDF0E4;
+  --orange: #E8A87C;
 }
 
 html {
@@ -21,11 +21,11 @@ html {
 body {
   color: var(--ink);
   background: var(--bg);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: "Nunito Sans", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
-  .font-display { font-family: Georgia, "Times New Roman", serif; }
+  .font-display { font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif; }
 }

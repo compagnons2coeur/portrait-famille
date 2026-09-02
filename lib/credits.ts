@@ -10,6 +10,10 @@ function emailKey(fingerprint: string): string {
   return `email:${fingerprint}`;
 }
 
+function optimizationKey(fingerprint: string, jobId: string): string {
+  return `optimization:${fingerprint}:${jobId}`;
+}
+
 async function getUsedToday(fingerprint: string): Promise<number> {
   const value = await getRedis().get<number>(todayKey(fingerprint));
   return value ?? 0;
@@ -56,4 +60,18 @@ export async function incrementUsage(fingerprint: string): Promise<void> {
   await redis.incr(key);
   // expire after 25h to handle timezone edge cases
   await redis.expire(key, 25 * 3600);
+}
+
+
+export async function allowOptimization(fingerprint: string, jobId: string): Promise<void> {
+  await getRedis().set(optimizationKey(fingerprint, jobId), "1", { ex: 60 * 60 });
+}
+
+export async function consumeOptimization(fingerprint: string, jobId: string): Promise<boolean> {
+  const redis = getRedis();
+  const key = optimizationKey(fingerprint, jobId);
+  const allowed = await redis.get<string>(key);
+  if (!allowed) return false;
+  await redis.del(key);
+  return true;
 }

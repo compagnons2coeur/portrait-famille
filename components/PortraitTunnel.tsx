@@ -138,8 +138,6 @@ const PROGRESS_STEPS = [
 function StyleCard({ style, selected, disabled, onSelect, previewOverride }: {
   style: Style; selected: boolean; disabled: boolean; onSelect: () => void; previewOverride?: string | null;
 }) {
-  const [imageError, setImageError] = useState(false);
-  const imgSrc = previewOverride ?? `/styles/${style.id}.jpg`;
   return (
     <button
       type="button"
@@ -152,18 +150,18 @@ function StyleCard({ style, selected, disabled, onSelect, previewOverride }: {
       } disabled:opacity-50`}
       style={{ outline: selected ? `2px solid ${style.accent}` : undefined, outlineOffset: "2px" }}
     >
-      <div className="aspect-[2/3] w-full overflow-hidden bg-stone-200 rounded-t-xl">
-        {!imageError ? (
+      <div className="aspect-[2/3] w-full overflow-hidden rounded-t-xl">
+        {previewOverride ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={imgSrc}
+            src={previewOverride}
             alt={style.nameFr}
-            className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${style.id === "argentique" ? "object-top" : ""}`}
-            onError={() => setImageError(true)}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-stone-100 px-3">
-            <span className="text-center text-sm text-stone-500">{style.nameFr}</span>
+          <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-3" style={{ background: `linear-gradient(145deg, ${style.accent}22, #f8f4ed)` }}>
+            <span className="font-display text-4xl" style={{ color: style.accent }}>✦</span>
+            <span className="text-center text-sm font-semibold text-stone-700">{style.nameFr}</span>
           </div>
         )}
       </div>
@@ -227,7 +225,7 @@ export default function PortraitTunnel() {
       return [item, ...prev.filter(p => p.originalImageUrl !== original)].slice(0, 12);
     });
     // Funnel : portrait affiché (étape 3 atteinte — l'utilisateur voit le résultat)
-    trackTikTok("GenerationCompleted", { content_id: "tunnel-portrait", content_name: selectedStyle?.id ?? "" });
+    trackTikTok("GenerationCompleted", { content_id: "tunnel-portrait-famille", content_name: selectedStyle?.id ?? "" });
     setStep("result");
   };
 
@@ -259,9 +257,10 @@ export default function PortraitTunnel() {
     // Pixel TikTok : entrée dans le tunnel (haut de funnel)
     // content_id requis par TikTok (sinon warning "Missing content_id" + attribution VSA dégradée)
     trackTikTok("ViewContent", {
-      content_id: "tunnel-portrait",
+      content_id: "tunnel-portrait-famille",
       content_type: "product",
-      content_name: "Tunnel portrait animaux",
+      content_name: "Tunnel portrait famille",
+      value: 19.9,
       currency: "EUR",
     });
   }, []);
@@ -310,7 +309,7 @@ export default function PortraitTunnel() {
     setPhotoFile(file);
     setPhotoPreview(prev => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(file); });
     // Funnel : photo choisie (étape 1 franchie)
-    trackTikTok("PhotoUploaded", { content_id: "tunnel-portrait" });
+    trackTikTok("PhotoUploaded", { content_id: "tunnel-portrait-famille" });
   }, []);
 
   const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
@@ -346,6 +345,7 @@ export default function PortraitTunnel() {
       formData.append("fingerprint", fingerprint);
       formData.append("aspectRatio", aspectRatio);
       if (isOptimization) formData.append("optimize", "true");
+      if (isOptimization && jobId) formData.append("sourceJobId", jobId);
       if (petName.trim()) formData.append("petName", petName.trim());
       if (emailValue) formData.append("email", emailValue);
 
@@ -364,7 +364,7 @@ export default function PortraitTunnel() {
       setJobId(data.jobId);
       setGenerationAspectRatio(aspectRatio);
       // Funnel : génération lancée (étape 2 franchie, style choisi)
-      trackTikTok("GenerationStarted", { content_id: "tunnel-portrait", content_name: style.id });
+      trackTikTok("GenerationStarted", { content_id: "tunnel-portrait-famille", content_name: style.id });
       setStep("generating");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -661,8 +661,8 @@ export default function PortraitTunnel() {
     }
   };
 
-  const STEP_LABELS = ["Photo", "Style", "Création", "Résultat"];
-  const STEP_KEYS: Step[] = ["upload", "style", "generating", "result"];
+  const STEP_LABELS = ["Photo", "Nom", "Style", "Création", "Résultat"];
+  const STEP_KEYS: Step[] = ["upload", "pet-name", "style", "generating", "result"];
   const currentStepIdx = STEP_KEYS.indexOf(step);
 
   return (
@@ -721,9 +721,9 @@ export default function PortraitTunnel() {
                     {label}
                   </span>
                 </div>
-                {i < 3 && (
+                {i < STEP_LABELS.length - 1 && (
                   <div
-                    className="mx-3 mb-5 h-px w-10 sm:w-16 transition-colors"
+                    className="mx-2 mb-5 h-px w-7 transition-colors sm:mx-3 sm:w-12"
                     style={{ backgroundColor: done ? "var(--green)" : "var(--border)" }}
                   />
                 )}
@@ -745,7 +745,7 @@ export default function PortraitTunnel() {
         <div className="mx-auto max-w-xl">
 
           {/* Comment ça marche — transformation en vraies images (compact : le module d'upload reste visible sans scroll sur mobile) */}
-          <div className="mb-8 flex items-center justify-center gap-1.5 sm:gap-2.5">
+          <div className="hidden mb-8 items-center justify-center gap-1.5 sm:gap-2.5">
             {[
               { src: "/how-it-works/1-photo.jpg", label: "Votre photo", alt: "Photo réelle d'une famille" },
               { src: "/how-it-works/2-portrait.jpg", label: "On crée le portrait", alt: "Portrait aquarelle de la même famille" },
@@ -775,6 +775,11 @@ export default function PortraitTunnel() {
             ))}
           </div>
 
+          <div className="mb-7 grid grid-cols-3 gap-2 text-center text-xs font-semibold text-stone-700">
+            <div className="rounded-xl border bg-white p-3" style={{ borderColor: "var(--border)" }}>1 · Photo</div>
+            <div className="rounded-xl border bg-white p-3" style={{ borderColor: "var(--border)" }}>2 · Style</div>
+            <div className="rounded-xl border bg-white p-3" style={{ borderColor: "var(--border)" }}>3 · Cadeau</div>
+          </div>
           <h2 className="font-display mb-1 text-2xl text-stone-800">Photo de votre famille</h2>
           <p className="mb-6 text-sm" style={{ color: "var(--muted)" }}>
             JPG ou PNG, 15 Mo max. Une belle photo de famille pour un résultat optimal.
@@ -828,7 +833,7 @@ export default function PortraitTunnel() {
 
           {!photoFile && (
             <>
-              <div className="my-5 flex items-center gap-3">
+              <div className="hidden my-5 items-center gap-3">
                 <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />
                 <span className="text-xs" style={{ color: "var(--muted)" }}>OU</span>
                 <div className="h-px flex-1" style={{ backgroundColor: "var(--border)" }} />
@@ -842,13 +847,18 @@ export default function PortraitTunnel() {
                   handleFile(file);
                   setIsExamplePhoto(true);
                 }}
-                className="w-full rounded-xl border py-3 text-sm font-medium transition hover:bg-white"
+                className="hidden w-full rounded-xl border py-3 text-sm font-medium transition hover:bg-white"
                 style={{ borderColor: "var(--border)", color: "var(--muted)" }}
               >
                 🐾 Essayer avec une photo d&apos;exemple
               </button>
             </>
           )}
+
+          <p className="mt-3 text-center text-[11px] leading-relaxed" style={{ color: "var(--muted)" }}>
+            Votre photo est traitée pour créer l&apos;aperçu. En continuant, vous acceptez notre{" "}
+            <a href="https://compagnonsdecoeur.fr/policies/privacy-policy" className="underline hover:opacity-70">politique de confidentialité</a>.
+          </p>
 
           <button
             type="button"
@@ -861,7 +871,7 @@ export default function PortraitTunnel() {
           </button>
 
           {/* Galerie de preuve — SOUS le module d'upload (le module reste visible sans scroll sur mobile) */}
-          <div className="mt-12 border-t pt-8" style={{ borderColor: "var(--border)" }}>
+          <div className="hidden mt-12 border-t pt-8" style={{ borderColor: "var(--border)" }}>
             <h2 className="font-display mb-1 text-center text-2xl text-stone-800 sm:text-3xl">
               Ce que vous allez recevoir
             </h2>
@@ -959,7 +969,7 @@ export default function PortraitTunnel() {
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <h2 className="font-display text-2xl text-stone-900">Choisissez un style</h2>
-              <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>2 aperçus gratuits par style et par appareil.</p>
+              <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>5 aperçus gratuits par jour et par appareil.</p>
             </div>
             <button type="button" onClick={() => setStep("upload")} className="shrink-0 text-sm transition hover:opacity-70" style={{ color: "var(--muted)" }}>
               Modifier la photo
@@ -1002,13 +1012,9 @@ export default function PortraitTunnel() {
           onClick={() => setShowStyleConfirm(false)}
         >
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="mx-auto mb-4 w-36 overflow-hidden rounded-xl shadow-md">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={selectedStyle.id === "sans-ia" && photoPreview ? photoPreview : `/styles/${selectedStyle.id}.jpg`}
-                alt={selectedStyle.nameFr}
-                className="aspect-[2/3] w-full object-cover"
-              />
+            <div className="mx-auto mb-4 flex aspect-[2/3] w-36 flex-col items-center justify-center gap-3 overflow-hidden rounded-xl shadow-md" style={{ background: `linear-gradient(145deg, ${selectedStyle.accent}22, #f8f4ed)` }}>
+              <span className="font-display text-4xl" style={{ color: selectedStyle.accent }}>✦</span>
+              <span className="px-3 text-center text-sm font-semibold text-stone-700">{selectedStyle.nameFr}</span>
             </div>
             <h3 className="text-center font-display text-2xl text-stone-900">{selectedStyle.nameFr}</h3>
             <p className="mt-1 text-center text-sm" style={{ color: "var(--muted)" }}>{selectedStyle.description}</p>
@@ -1144,7 +1150,8 @@ export default function PortraitTunnel() {
                   </div>
                 );
               })()}
-              {displayCategories.map(category => (
+              {displayCategories.map(category => ({ ...category, products: category.products.filter(product => product.available) }))
+                .filter(category => category.products.length > 0).map(category => (
                 <div key={category.id}>
                   <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
                     {category.label}
@@ -1156,13 +1163,8 @@ export default function PortraitTunnel() {
                       <button
                         key={product.id}
                         type="button"
-                        disabled={!product.available}
                         onClick={() => selectProduct(product.id)}
-                        className={`relative rounded-xl border p-4 text-left transition-all duration-200 ${
-                          product.available
-                            ? "hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
-                            : "cursor-not-allowed opacity-50"
-                        }`}
+                        className="relative cursor-pointer rounded-xl border p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                         style={
                           isPreselected
                             ? { borderColor: "var(--green)", backgroundColor: "var(--green)", boxShadow: "0 4px 16px rgba(74,124,89,.35)" }
@@ -1176,19 +1178,15 @@ export default function PortraitTunnel() {
                         )}
                         <div className="text-2xl mb-2">{product.emoji}</div>
                         <p className={`text-sm font-semibold ${isPreselected ? "text-white" : "text-stone-800"}`}>{product.label}</p>
-                        {!product.available && (
-                          <span className="mt-2 inline-block rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--border)", color: "var(--muted)" }}>
-                            Bientôt
-                          </span>
-                        )}
                       </button>
                       );
                     })}
                   </div>
                 </div>
               ))}
-
-
+              <p className="rounded-xl border px-4 py-3 text-center text-xs" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>
+                Les supports affichés ci-dessus sont commandables immédiatement.
+              </p>
             </div>
           </div>
         </div>
