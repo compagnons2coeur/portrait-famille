@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <rect width="900" height="1200" fill="#F5EFE6"/>
+  <rect x="36" y="36" width="828" height="1128" rx="42" fill="#FFFDF9" stroke="#9CAA82" stroke-width="4" stroke-dasharray="16 14"/>
+  <circle cx="315" cy="500" r="88" fill="#E8A87C" opacity=".46"/>
+  <circle cx="450" cy="430" r="110" fill="#9CAA82" opacity=".46"/>
+  <circle cx="585" cy="500" r="88" fill="#E8A87C" opacity=".46"/>
+  <path d="M450 800C287 685 230 590 290 515c50-62 128-30 160 26 32-56 110-88 160-26 60 75 3 170-160 285Z" fill="none" stroke="#C9745A" stroke-width="14"/>
+  <text x="450" y="920" text-anchor="middle" font-family="Georgia,serif" font-size="48" fill="#3B352E">VISUEL FAMILLE</text>
+  <text x="450" y="980" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" fill="#776D62">À REMPLACER</text>
+</svg>

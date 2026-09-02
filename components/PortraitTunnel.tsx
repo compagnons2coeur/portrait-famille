@@ -43,6 +43,19 @@ const GALLERY_EXAMPLES: { src: string; label: string }[] = [
   { src: "/styles/magazine-gallery.jpg", label: "Magazine" },
 ];
 
+const PRODUCT_STRIP = [
+  { label: "Tableau toile", price: "dès 19,90 €" },
+  { label: "T-shirt", price: "19,90 €" },
+  { label: "Sweat", price: "39,90 €" },
+];
+
+const CATEGORY_CHIPS = [
+  { emoji: "🖼️", label: "Tableaux" },
+  { emoji: "👕", label: "Textile & mode" },
+];
+
+const FAMILY_PLACEHOLDER = "/placeholders/portrait-famille.svg";
+
 const SUPPORT_CATEGORIES = [
   {
     id: "tableaux",
@@ -179,6 +192,7 @@ export default function PortraitTunnel() {
   const [fingerprint, setFingerprint] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   const [isExamplePhoto, setIsExamplePhoto] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [petName, setPetName] = useState("");
@@ -252,8 +266,10 @@ export default function PortraitTunnel() {
 
   // Lire ?produit= depuis l'URL (lien depuis une fiche produit Shopify)
   useEffect(() => {
-    const raw = new URLSearchParams(window.location.search).get("produit");
+    const search = new URLSearchParams(window.location.search);
+    const raw = search.get("produit");
     setPreselectedProduct(resolveProductParam(raw));
+    setIsDemoMode(search.get("demo") === "cdc");
     // Pixel TikTok : entrée dans le tunnel (haut de funnel)
     // content_id requis par TikTok (sinon warning "Missing content_id" + attribution VSA dégradée)
     trackTikTok("ViewContent", {
@@ -430,12 +446,10 @@ export default function PortraitTunnel() {
       return;
     }
 
-    if (isExamplePhoto) {
-      // Styles transparents : la démo doit être un PNG détouré pour que
-      // les mockups textiles s'affichent sans rectangle blanc.
-      const demoUrl = `/demos/${selectedStyle.id}.${selectedStyle.transparent ? "png" : "jpg"}`;
+    if (isDemoMode && isExamplePhoto) {
+      const demoUrl = FAMILY_PLACEHOLDER;
       setStep("generating");
-      await new Promise(resolve => setTimeout(resolve, 8000));
+      await new Promise(resolve => setTimeout(resolve, 1200));
       setProgressPct(100);
       setGenerationMessage("Portrait prêt !");
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -669,35 +683,28 @@ export default function PortraitTunnel() {
     <div className="mx-auto w-full max-w-6xl">
 
       {/* Header */}
-      <div className="mb-12 relative">
+      <div className="relative mb-8 flex items-center justify-between gap-3 sm:mb-10">
         <a
           href="https://compagnonsdecoeur.fr"
-          className="absolute left-0 top-0 flex items-center gap-1 text-sm transition hover:opacity-70"
+          className="flex shrink-0 items-center gap-1 text-sm font-semibold transition hover:opacity-70"
           style={{ color: "var(--muted)" }}
         >
           ← Boutique
         </a>
-        <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.25em]" style={{ color: "var(--green)" }}>
-          Compagnons de Cœur
-        </p>
-        <h1 className="font-display mt-3 text-4xl text-stone-900 sm:text-5xl" style={{ letterSpacing: "-0.02em" }}>
-          Portrait de votre famille
-        </h1>
-        <p className="mt-3 text-base" style={{ color: "var(--muted)" }}>
-          Uploadez une photo · Choisissez un style · Recevez un aperçu gratuit
-        </p>
-        {step !== "upload" && (
+        <a href="https://compagnonsdecoeur.fr" aria-label="Compagnons de Cœur — retour à la boutique" className="shrink-0 transition hover:opacity-80">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-compagnons-de-coeur.png" alt="Compagnons de Cœur" className="h-16 w-16 object-contain sm:h-20 sm:w-20" />
+        </a>
+        {step !== "upload" ? (
           <button
             type="button"
             onClick={restart}
-            className="mt-5 text-sm transition hover:opacity-70"
+            className="shrink-0 text-sm transition hover:opacity-70"
             style={{ color: "var(--muted)" }}
           >
             ↺ Recommencer
           </button>
-        )}
-        </div>
+        ) : <span className="w-14 shrink-0" aria-hidden />}
       </div>
 
       {/* Step indicator */}
@@ -740,8 +747,65 @@ export default function PortraitTunnel() {
         </div>
       )}
 
-      {/* ── UPLOAD ── */}
+      {/* ── ACCUEIL + UPLOAD ── */}
       {step === "upload" && (
+        <div>
+          <section className="grid items-center gap-8 lg:grid-cols-[1.05fr_.95fr] lg:gap-12">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-[.18em]" style={{ color: "var(--green-dark)" }}>Portrait personnalisé · Créé en France</p>
+              <h1 className="font-display mt-3 text-4xl font-bold leading-[.98] sm:text-6xl" style={{ color: "var(--ink)", letterSpacing: "-.025em" }}>
+                Votre famille, transformée en <span style={{ color: "var(--orange)", fontStyle: "italic" }}>souvenir inoubliable.</span>
+              </h1>
+              <p className="mt-5 max-w-xl text-base leading-relaxed sm:text-lg" style={{ color: "var(--ink)" }}>
+                Choisissez parmi 14 styles d&apos;artiste, découvrez votre aperçu gratuitement, puis imprimez votre portrait sur le cadeau de votre choix.
+              </p>
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="mt-6 rounded-full px-7 py-4 text-base font-extrabold text-white transition hover:opacity-90 active:scale-[.99]" style={{ background: "#C9745A" }}>
+                Créer notre portrait de famille →
+              </button>
+              <p className="mt-3 text-xs font-semibold" style={{ color: "var(--muted)" }}>Sans inscription pour le 1er aperçu · 5 aperçus offerts / jour · environ 30 s</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 rounded-3xl p-3" style={{ background: "#FFF9F2", boxShadow: "0 20px 45px -24px rgba(90,70,50,.45)" }}>
+              {["Votre photo", "Votre portrait"].map((label, index) => (
+                <figure key={label} className={`overflow-hidden rounded-2xl border bg-white ${index ? "mt-8" : "mb-8"}`} style={{ borderColor: "var(--border)" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={FAMILY_PLACEHOLDER} alt={`${label} de famille — visuel à remplacer`} className="aspect-[3/4] w-full object-cover" />
+                  <figcaption className="px-2 py-2 text-center text-xs font-extrabold" style={{ color: index ? "#C9745A" : "var(--muted)" }}>{label} · visuel à remplacer</figcaption>
+                </figure>
+              ))}
+            </div>
+          </section>
+
+          <section className="mx-auto mt-14 max-w-2xl rounded-3xl border bg-white p-5 sm:p-7" style={{ borderColor: "var(--border)", boxShadow: "0 16px 45px -30px rgba(59,53,46,.55)" }}>
+            <p className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: "var(--green-dark)" }}>Votre aperçu commence ici</p>
+            <h2 className="font-display mt-1 text-2xl font-bold sm:text-3xl" style={{ color: "var(--ink)" }}>Ajoutez votre photo de famille</h2>
+            <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>Une photo nette, bien éclairée, où chaque visage est visible.</p>
+            <div role="button" tabIndex={0} onClick={() => fileInputRef.current?.click()} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") fileInputRef.current?.click(); }} onDragOver={e => { e.preventDefault(); setDragActive(true); }} onDragLeave={() => setDragActive(false)} onDrop={onDrop} className="mt-5 flex min-h-[250px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed p-4 text-center transition hover:bg-stone-50" style={{ borderColor: dragActive ? "var(--green)" : "var(--border)", background: dragActive ? "#EDF0E4" : "#FFFDF9" }}>
+              {photoPreview ? <img src={photoPreview} alt="Aperçu de votre photo de famille" className="max-h-64 rounded-xl object-contain" /> : <><p className="mb-2 text-4xl" aria-hidden>📷</p><p className="font-bold" style={{ color: "var(--ink)" }}>Glissez votre photo ici, ou cliquez</p><p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>JPG ou PNG · 15 Mo max</p></>}
+            </div>
+            {photoFile && <div className="mt-3 flex items-center justify-between rounded-xl px-4 py-2.5" style={{ background: "#EDF0E4" }}><p className="min-w-0 truncate text-sm font-bold">{photoFile.name}</p><div className="ml-4 flex shrink-0 gap-3 text-sm"><button type="button" onClick={() => setShowCropModal(true)} className="font-bold" style={{ color: "var(--green-dark)" }}>Rogner</button><button type="button" onClick={() => fileInputRef.current?.click()} style={{ color: "var(--muted)" }}>Changer</button></div></div>}
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/jpg" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+            {isDemoMode && !photoFile && <button type="button" onClick={async () => { const res = await fetch("/logo-compagnons-de-coeur.png"); const blob = await res.blob(); handleFile(new File([blob], "exemple-famille-a-remplacer.png", { type: "image/png" })); setIsExamplePhoto(true); }} className="mt-4 w-full rounded-xl border py-3 text-sm font-bold" style={{ borderColor: "var(--border)", color: "var(--muted)" }}>🛠️ Mode test — exemple sans génération facturée</button>}
+            <p className="mt-3 text-center text-[11px] leading-relaxed" style={{ color: "var(--muted)" }}>Votre photo sert uniquement à créer l&apos;aperçu. En continuant, vous acceptez notre <a href="https://compagnonsdecoeur.fr/policies/privacy-policy" className="underline">politique de confidentialité</a>.</p>
+            {photoFile && <button type="button" onClick={() => setStep("pet-name")} className="mt-5 w-full rounded-full py-3.5 text-base font-extrabold text-white" style={{ background: "#C9745A" }}>Continuer →</button>}
+          </section>
+
+          <section className="mt-14">
+            <p className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: "var(--green-dark)" }}>Un portrait, plusieurs cadeaux</p>
+            <h2 className="font-display mt-1 text-2xl font-bold sm:text-3xl" style={{ color: "var(--ink)" }}>Choisissez le support qui réunira vos plus beaux souvenirs.</h2>
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">{PRODUCT_STRIP.map(p => <button key={p.label} type="button" onClick={() => fileInputRef.current?.click()} className="overflow-hidden rounded-2xl border bg-white text-left" style={{ borderColor: "var(--border)" }}><img src={FAMILY_PLACEHOLDER} alt={`${p.label} famille — visuel à remplacer`} className="aspect-[4/3] w-full object-cover" /><div className="px-4 py-3"><p className="font-extrabold">{p.label}</p><p className="text-sm font-bold" style={{ color: "#C9745A" }}>{p.price}</p></div></button>)}</div>
+            <div className="mt-4 flex flex-wrap gap-2">{CATEGORY_CHIPS.map(c => <span key={c.label} className="rounded-full border bg-white px-3 py-2 text-xs font-bold" style={{ borderColor: "var(--border)" }}>{c.emoji} {c.label}</span>)}</div>
+          </section>
+
+          <section className="mt-14"><p className="text-[11px] font-extrabold uppercase tracking-widest" style={{ color: "var(--green-dark)" }}>Comment ça marche</p><h2 className="font-display mt-1 text-2xl font-bold sm:text-3xl">Trois étapes, zéro effort.</h2><div className="mt-5 grid gap-3 sm:grid-cols-3">{[
+            ["1", "Ajoutez votre photo", "Une seule photo de famille suffit."], ["2", "Choisissez votre style", "14 univers artistiques et 5 aperçus gratuits par jour."], ["3", "Offrez votre portrait", "Tableau, t-shirt ou sweat, préparé avec soin en France."],
+          ].map(([n,t,d]) => <div key={n} className="rounded-2xl border bg-white p-4" style={{ borderColor: "var(--border)" }}><span className="flex h-9 w-9 items-center justify-center rounded-full font-extrabold text-white" style={{ background: "var(--green)" }}>{n}</span><h3 className="mt-3 font-extrabold">{t}</h3><p className="mt-1 text-sm leading-relaxed" style={{ color: "var(--muted)" }}>{d}</p></div>)}</div></section>
+
+          <section className="mt-12 rounded-3xl border p-6 sm:p-8" style={{ borderColor: "#E8A87C", background: "#FFF3E8" }}><h2 className="font-display text-2xl font-bold">Toute votre famille, réunie dans un cadeau unique.</h2><p className="mt-2 max-w-3xl leading-relaxed" style={{ color: "var(--ink)" }}>Anniversaire, Noël, fête des mères ou des pères : transformez une photo importante en souvenir durable à offrir ou à garder.</p></section>
+        </div>
+      )}
+
+      {/* Ancienne page conservée temporairement hors rendu, le temps de valider la nouvelle façade. */}
+      {false && step === "upload" && (
         <div className="mx-auto max-w-xl">
 
           {/* Comment ça marche — transformation en vraies images (compact : le module d'upload reste visible sans scroll sur mobile) */}
@@ -800,7 +864,7 @@ export default function PortraitTunnel() {
           >
             {photoPreview ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={photoPreview} alt="Aperçu" className="max-h-64 rounded-xl object-contain" />
+              <img src={photoPreview ?? undefined} alt="Aperçu" className="max-h-64 rounded-xl object-contain" />
             ) : (
               <>
                 <p className="text-4xl mb-3">🐾</p>
@@ -813,8 +877,8 @@ export default function PortraitTunnel() {
           {photoFile && (
             <div className="mt-3 flex items-center justify-between rounded-xl px-4 py-2.5" style={{ background: "var(--border)", opacity: 1, backgroundColor: "#f0ece7" }}>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium text-stone-700">{photoFile.name}</p>
-                <p className="text-xs" style={{ color: "var(--muted)" }}>{(photoFile.size / 1024 / 1024).toFixed(2)} Mo</p>
+                <p className="truncate text-sm font-medium text-stone-700">{photoFile?.name}</p>
+                <p className="text-xs" style={{ color: "var(--muted)" }}>{((photoFile?.size ?? 0) / 1024 / 1024).toFixed(2)} Mo</p>
               </div>
               <div className="ml-4 flex shrink-0 gap-3 text-sm">
                 <button type="button" onClick={e => { e.stopPropagation(); setShowCropModal(true); }} className="font-medium transition hover:opacity-70" style={{ color: "var(--green)" }}>

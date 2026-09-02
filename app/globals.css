@@ -3,10 +3,22 @@
 @tailwind utilities;
 
 :root {
+  --cream: #F5EFE6;
+  --cream2: #FBF8F2;
   --bg: #F5EFE6;
   --ink: #3B352E;
-  --muted: #948A7C;
+  --ink2: #5C544A;
+  --muted: #6F675D;
   --border: #EBE2D3;
+  --line: #EBE2D3;
+  --sage: #9CAA82;
+  --sage-deep: #77875E;
+  --sage-tint: #EDF0E4;
+  --peach: #E8A87C;
+  --peach-tint: #F9EBDD;
+  --terra: #C9745A;
+  --terra-deep: #AD5A41;
+  --terra-cta: #AD5A41;
   --green: #9CAA82;
   --green-dark: #77875E;
   --green-base: #9CAA82;
@@ -28,4 +40,6 @@ body {
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .font-display { font-family: "Cormorant Garamond", Georgia, "Times New Roman", serif; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
