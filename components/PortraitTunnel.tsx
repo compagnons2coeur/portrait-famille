@@ -129,6 +129,30 @@ const SUPPORT_CATEGORIES = [
 
 const SUPPORT_PRODUCTS = SUPPORT_CATEGORIES.flatMap(c => c.products);
 
+type CatalogProduct = {
+  id: string; label: string; emoji: string; price: string; baseImage: string;
+  artwork: { top: string; left: string; width: string; height: string };
+  styleIds: string[];
+};
+
+const CATALOG_PRODUCTS: CatalogProduct[] = [
+  { id: "tableau-toile", label: "Tableau toile", emoji: "🖼️", price: "dès 24,90 €", baseImage: "/decor/salon-toile.jpg", artwork: { top: "12%", left: "25%", width: "47%", height: "52%" }, styleIds: ["aquarelle", "argentique", "espace", "baroque", "magazine", "montagne"] },
+  { id: "tshirt", label: "T-shirt", emoji: "👕", price: "dès 24,90 €", baseImage: "/apparel/tshirt/off-white-avant.jpg", artwork: { top: "31%", left: "35%", width: "30%", height: "34%" }, styleIds: ["studio-couleur", "studio-nb", "aquarelle", "croquis", "line-art"] },
+  { id: "sweat", label: "Sweat", emoji: "🧥", price: "dès 34,90 €", baseImage: "/apparel/sweat/off-white-avant.jpg", artwork: { top: "36%", left: "36%", width: "28%", height: "27%" }, styleIds: ["studio-couleur", "studio-nb", "aquarelle", "croquis", "line-art"] },
+];
+
+function CatalogPreview({ product, style }: { product: CatalogProduct; style: Style }) {
+  const isTableau = product.id === "tableau-toile";
+  return <div className="relative aspect-[3/4] w-full overflow-hidden bg-stone-100">
+    {/* eslint-disable-next-line @next/next/no-img-element */}<img src={product.baseImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+    <div className={`absolute overflow-hidden ${isTableau ? "bg-white shadow-lg" : ""}`} style={{ ...product.artwork }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}<img src={FAMILY_PLACEHOLDER} alt={`Visuel ${style.nameFr} à remplacer`} className="h-full w-full object-cover" style={{ mixBlendMode: isTableau ? "normal" : "multiply" }} />
+    </div>
+    <span className="absolute left-2 top-2 rounded-full bg-white/90 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-stone-600 shadow-sm">Exemple</span>
+    <span className="absolute bottom-2 left-2 right-2 rounded-lg bg-stone-900/70 px-2 py-1 text-center text-[9px] font-bold text-white">Visuel Famille à remplacer</span>
+  </div>;
+}
+
 // Valide que le paramètre ?produit= correspond à un id de support connu.
 function resolveProductParam(raw: string | null): string | null {
   if (!raw) return null;
@@ -147,44 +171,6 @@ const PROGRESS_STEPS = [
   { pct: 88, msg: "Dernières retouches…" },
   { pct: 94, msg: "Presque prêt…" },
 ];
-
-function StyleCard({ style, selected, disabled, onSelect, previewOverride }: {
-  style: Style; selected: boolean; disabled: boolean; onSelect: () => void; previewOverride?: string | null;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onSelect}
-      className={`group overflow-hidden rounded-xl text-left transition-all duration-200 ${
-        selected
-          ? "ring-2 ring-offset-1 shadow-md"
-          : "hover:shadow-sm hover:-translate-y-0.5"
-      } disabled:opacity-50`}
-      style={{ outline: selected ? `2px solid ${style.accent}` : undefined, outlineOffset: "2px" }}
-    >
-      <div className="aspect-[2/3] w-full overflow-hidden rounded-t-xl">
-        {previewOverride ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={previewOverride}
-            alt={style.nameFr}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-3" style={{ background: `linear-gradient(145deg, ${style.accent}22, #f8f4ed)` }}>
-            <span className="font-display text-4xl" style={{ color: style.accent }}>✦</span>
-            <span className="text-center text-sm font-semibold text-stone-700">{style.nameFr}</span>
-          </div>
-        )}
-      </div>
-      <div className="p-3" style={{ borderTop: `2px solid ${selected ? style.accent : "transparent"}` }}>
-        <h3 className="text-xs font-semibold text-stone-800 leading-tight">{style.nameFr}</h3>
-        <p className="mt-0.5 text-[11px] text-stone-400 leading-tight">{style.description}</p>
-      </div>
-    </button>
-  );
-}
 
 export default function PortraitTunnel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -240,7 +226,7 @@ export default function PortraitTunnel() {
     });
     // Funnel : portrait affiché (étape 3 atteinte — l'utilisateur voit le résultat)
     trackTikTok("GenerationCompleted", { content_id: "tunnel-portrait-famille", content_name: selectedStyle?.id ?? "" });
-    setStep("result");
+    setStep("support");
   };
 
   const restoreFromHistory = (h: GenHistoryItem) => {
@@ -249,7 +235,7 @@ export default function PortraitTunnel() {
     setBlobImageUrl(h.blobImageUrl);
     setGenerationAspectRatio(h.aspectRatio);
     setError(null);
-    setStep("result");
+    setStep("support");
   };
 
   // Catégories avec le produit présélectionné remonté en tête
@@ -268,7 +254,9 @@ export default function PortraitTunnel() {
   useEffect(() => {
     const search = new URLSearchParams(window.location.search);
     const raw = search.get("produit");
-    setPreselectedProduct(resolveProductParam(raw));
+    const resolvedProduct = resolveProductParam(raw);
+    setPreselectedProduct(resolvedProduct);
+    if (resolvedProduct && CATALOG_PRODUCTS.some(product => product.id === resolvedProduct)) setSelectedProduct(resolvedProduct);
     setIsDemoMode(search.get("demo") === "cdc");
     // Pixel TikTok : entrée dans le tunnel (haut de funnel)
     // content_id requis par TikTok (sinon warning "Missing content_id" + attribution VSA dégradée)
@@ -675,8 +663,8 @@ export default function PortraitTunnel() {
     }
   };
 
-  const STEP_LABELS = ["Photo", "Nom", "Style", "Création", "Résultat"];
-  const STEP_KEYS: Step[] = ["upload", "pet-name", "style", "generating", "result"];
+  const STEP_LABELS = ["Photo", "Nom", "Cadeau", "Création", "Personnalisation"];
+  const STEP_KEYS: Step[] = ["upload", "pet-name", "style", "generating", "support"];
   const currentStepIdx = STEP_KEYS.indexOf(step);
 
   return (
@@ -993,8 +981,8 @@ export default function PortraitTunnel() {
             Le nom de votre famille ?
           </h2>
           <p className="text-sm mb-8" style={{ color: "var(--muted)" }}>
-            Les styles Croquis crayon et Line art l&apos;intègrent directement dans l&apos;œuvre,
-            et il servira de signature sur votre tableau.
+            Il pourra être inscrit sur le portrait. À l&apos;étape suivante, nous vous
+            montrerons seulement les styles adaptés au cadeau choisi.
           </p>
           <div className="relative">
             <input
@@ -1027,41 +1015,29 @@ export default function PortraitTunnel() {
         </div>
       )}
 
-      {/* ── STYLE ── */}
+      {/* ── CATALOGUE PRODUIT + STYLE ── */}
       {step === "style" && (
         <div>
-          <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="mb-7 flex items-start justify-between gap-4">
             <div>
-              <h2 className="font-display text-2xl text-stone-900">Choisissez un style</h2>
-              <p className="mt-1 text-sm" style={{ color: "var(--muted)" }}>5 aperçus gratuits par jour et par appareil.</p>
+              <p className="mb-1 text-xs font-extrabold uppercase tracking-[.18em]" style={{ color: "#C9745A" }}>Votre cadeau prend forme</p>
+              <h2 className="font-display text-3xl text-stone-900">Choisissez le rendu qui vous plaît</h2>
+              <p className="mt-2 max-w-2xl text-sm" style={{ color: "var(--muted)" }}>Sélectionnez un produit : nous affichons uniquement les styles adaptés à ce support. Les visuels Famille définitifs seront ajoutés lors de la prochaine passe créative.</p>
             </div>
-            <button type="button" onClick={() => setStep("upload")} className="shrink-0 text-sm transition hover:opacity-70" style={{ color: "var(--muted)" }}>
-              Modifier la photo
+            <button type="button" onClick={() => setStep("pet-name")} className="shrink-0 text-sm transition hover:opacity-70" style={{ color: "var(--muted)" }}>
+              ← Retour
             </button>
           </div>
 
-          {([
-            { key: "elegant", title: "✨ Styles élégants" },
-            { key: "fun", title: "🎉 Styles fun" },
-          ] as const).map(cat => (
-            <div key={cat.key} className="mb-8">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--muted)" }}>
-                {cat.title}
-              </p>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                {STYLES.filter(s => s.category === cat.key).map(style => (
-                  <StyleCard
-                    key={style.id}
-                    style={style}
-                    selected={selectedStyle?.id === style.id}
-                    disabled={isSubmitting}
-                    onSelect={() => handleStyleSelect(style)}
-                    previewOverride={style.id === "sans-ia" ? photoPreview : null}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+          <div className="mb-7 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none]">
+            {CATALOG_PRODUCTS.map(product => <button key={product.id} type="button" onClick={() => { setSelectedProduct(product.id); setSelectedStyle(null); }} className="min-w-[132px] shrink-0 rounded-2xl border px-4 py-3 text-left transition" style={selectedProduct === product.id ? { borderColor: "var(--green)", background: "#EDF0E4" } : { borderColor: "var(--border)", background: "white" }}><span className="text-xl">{product.emoji}</span><span className="mt-1 block text-sm font-extrabold">{product.label}</span><span className="text-[10px] font-bold" style={{ color: "var(--muted)" }}>{product.price}</span></button>)}
+          </div>
+
+          {(() => {
+            const product = CATALOG_PRODUCTS.find(item => item.id === selectedProduct) ?? CATALOG_PRODUCTS[0];
+            const styles = product.styleIds.map(id => STYLES.find(style => style.id === id)).filter((style): style is Style => Boolean(style));
+            return <div><div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: "var(--muted)" }}>Nos recommandations pour</p><h3 className="font-display text-2xl">{product.label}</h3></div><span className="rounded-full px-3 py-1.5 text-xs font-bold" style={{ background: "#FFF3E8" }}>{styles.length} rendus adaptés · {product.price}</span></div><div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{styles.map(style => <button key={`${product.id}-${style.id}`} type="button" onClick={() => handleStyleSelect(style)} className="overflow-hidden rounded-2xl border bg-white text-left transition hover:-translate-y-1 hover:shadow-lg" style={{ borderColor: "var(--border)" }}><CatalogPreview product={product} style={style} /><div className="p-3.5"><div className="flex justify-between gap-2"><h4 className="text-sm font-extrabold">{style.nameFr}</h4><span className="text-xs" style={{ color: "#C9745A" }}>Choisir →</span></div><p className="mt-1 line-clamp-2 text-[11px]" style={{ color: "var(--muted)" }}>{style.description}</p></div></button>)}</div></div>;
+          })()}
 
           {isSubmitting && (
             <p className="mt-6 text-center text-sm" style={{ color: "var(--muted)" }}>Lancement de la génération…</p>
@@ -1076,12 +1052,9 @@ export default function PortraitTunnel() {
           onClick={() => setShowStyleConfirm(false)}
         >
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="mx-auto mb-4 flex aspect-[2/3] w-36 flex-col items-center justify-center gap-3 overflow-hidden rounded-xl shadow-md" style={{ background: `linear-gradient(145deg, ${selectedStyle.accent}22, #f8f4ed)` }}>
-              <span className="font-display text-4xl" style={{ color: selectedStyle.accent }}>✦</span>
-              <span className="px-3 text-center text-sm font-semibold text-stone-700">{selectedStyle.nameFr}</span>
-            </div>
+            <div className="mx-auto mb-4 w-44 overflow-hidden rounded-xl shadow-md"><CatalogPreview product={CATALOG_PRODUCTS.find(item => item.id === selectedProduct) ?? CATALOG_PRODUCTS[0]} style={selectedStyle} /></div>
             <h3 className="text-center font-display text-2xl text-stone-900">{selectedStyle.nameFr}</h3>
-            <p className="mt-1 text-center text-sm" style={{ color: "var(--muted)" }}>{selectedStyle.description}</p>
+            <p className="mt-1 text-center text-sm" style={{ color: "var(--muted)" }}>sur {CATALOG_PRODUCTS.find(item => item.id === selectedProduct)?.label} · {CATALOG_PRODUCTS.find(item => item.id === selectedProduct)?.price}</p>
             <button
               type="button"
               disabled={isSubmitting}
@@ -1089,7 +1062,7 @@ export default function PortraitTunnel() {
               className="mt-5 w-full rounded-full py-3.5 font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
               style={{ backgroundColor: "var(--green)" }}
             >
-              Générer ce portrait →
+              Créer notre aperçu personnalisé →
             </button>
             <button
               type="button"
@@ -1341,8 +1314,9 @@ export default function PortraitTunnel() {
           mockupImageUrl={blobImageUrl ?? originalImageUrl}
           shopifyImageUrl={originalImageUrl}
           petName={petName || undefined}
+          demoMode={isDemoMode}
           inkInvertible={selectedStyle?.transparent === "ink"}
-          onBack={() => setStep("result")}
+          onBack={() => setStep("style")}
           onAddToCart={addToCart}
         />
       )}

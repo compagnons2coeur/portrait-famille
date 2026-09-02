@@ -469,6 +469,8 @@ interface Props {
   mockupImageUrl: string;
   shopifyImageUrl: string;
   petName?: string;
+  /** Mode interne ?demo=cdc : composition locale sans appel Dynamic Mockups. */
+  demoMode?: boolean;
   /** Style à trait (croquis, line art) : design noir → encre blanche possible sur couleurs sombres. */
   inkInvertible?: boolean;
   onBack: () => void;
@@ -500,7 +502,7 @@ function Toggle({ on }: { on: boolean }) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function SupportSelector({ productId, mockupImageUrl, shopifyImageUrl, petName, inkInvertible, onBack, onAddToCart }: Props) {
+export default function SupportSelector({ productId, mockupImageUrl, shopifyImageUrl, petName, demoMode = false, inkInvertible, onBack, onAddToCart }: Props) {
   const product = PRODUCTS[productId] ?? PRODUCTS["tableau-toile"];
 
   const initialPrimary = product.primaryOptions[product.defaultPrimaryIdx ?? 0] ?? "default";
@@ -660,6 +662,7 @@ export default function SupportSelector({ productId, mockupImageUrl, shopifyImag
   useEffect(() => {
     const view = views[Math.min(activeView, Math.max(views.length - 1, 0))];
     if (!view) { setMockupError(null); setMockupLoading(false); return; }
+    if (demoMode && view.baseImage) { setMockupError(null); setMockupLoading(false); return; }
 
     // L'encre blanche est en cours de préparation : on attend l'URL inversée
     // plutôt que de rendre (et payer) un mockup avec le design noir.
@@ -701,7 +704,7 @@ export default function SupportSelector({ productId, mockupImageUrl, shopifyImag
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveDesignUrl, whiteInk, invertedUrl, selectedPrimary, productId, sidesOn, placementBySide, activeView]);
+  }, [effectiveDesignUrl, whiteInk, invertedUrl, selectedPrimary, productId, sidesOn, placementBySide, activeView, demoMode]);
 
   const handleAddToCart = () => {
     if (!isConfigured) return;
@@ -802,6 +805,10 @@ export default function SupportSelector({ productId, mockupImageUrl, shopifyImag
               {activeViewLabel && mockupUrls[activeViewLabel] && !mockupError && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={mockupUrls[activeViewLabel]} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              )}
+              {demoMode && !mockupUrls[activeViewLabel ?? ""] && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={effectiveDesignUrl} alt="Aperçu local du placement" className="absolute object-contain" style={{ top: "32%", left: "35%", width: "30%", height: "30%", mixBlendMode: "multiply" }} />
               )}
               {mockupLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
