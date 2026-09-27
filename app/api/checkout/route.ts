@@ -31,6 +31,13 @@ type Body = {
 };
 
 export async function POST(request: NextRequest) {
+  if (process.env.PORTRAIT_CHECKOUT_ENABLED !== "true") {
+    return NextResponse.json(
+      { error: "checkout_temporarily_unavailable" },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   try {
     const body = (await request.json()) as Body;
 
