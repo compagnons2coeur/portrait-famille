@@ -4,10 +4,11 @@ import TikTokPixel from "@/components/TikTokPixel";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://portrait-famille.compagnonsdecoeur.fr"),
-  title: "Portrait personnalisé de famille | Aperçu gratuit",
+  title: "Portrait de famille — bientôt disponible | Compagnons de Cœur",
   description:
-    "Transformez une photo de famille en portrait personnalisé. Aperçu gratuit avant impression sur tableau ou textile.",
+    "L’atelier de portrait de famille Compagnons de Cœur est en préparation. En attendant, découvrez nos textiles personnalisés avec la photo de votre animal.",
   alternates: { canonical: "/" },
+  robots: { index: false, follow: true },
 };
 
 export default function RootLayout({
